@@ -1,0 +1,34 @@
+# ============================================================
+# QLabel Booster - .gitignore
+# ============================================================
+
+# ===== 系统/编辑器 =====
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+*.iml
+
+# ===== 构建产物（Release 自动生成，不入库） =====
+qlabel-booster/dist/
+qlabel-booster-userscript/dist/
+
+# ===== Node =====
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# ===== 老的归档 =====
+qlabel-booster/CHANGELOG-archive.md.bak
+qlabel-booster/*.zip
+qlabel-booster/*.bak
+
+# ===== 排除其他不相关项目（CodeBuddy 工作目录下的其他文件夹） =====
+# 这些是你本地的其他项目/缓存，不上传到 QLabel-Booster 仓库
+/Claw/
+/20260427143003/
+
+# ===== CodeBuddy 工作区状态（如果有） =====
+.codebuddy/
+*.cb-state

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<title>QLabel Booster</title>
+<link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+<div class="head">
+  <div class="logo">⚡ QLabel Booster</div>
+  <div class="ver" id="verTop">v-</div>
+</div>
+
+<div class="sec">
+  <label class="switch">
+    <input type="checkbox" id="enableShortcuts" />
+    <span>启用键盘快捷键</span>
+  </label>
+  <div class="sub-tip">关闭后所有键盘快捷键暂停（鼠标点击不受影响）。修改后立即生效，无需刷新页面。</div>
+</div>
+
+<div class="sec">
+  <div class="title">标注模式 · 快捷键</div>
+  <table class="keys">
+    <tr><th>1 / 2 / 3</th><td>打分 0 / 0.5 / 1</td></tr>
+    <tr><th>` / ~ / 4</th><td>打分 none（不适用）</td></tr>
+    <tr><th>Tab / ↓</th><td>下一题</td></tr>
+    <tr><th>Shift+Tab / ↑</th><td>上一题</td></tr>
+    <tr><th>← / →</th><td>切换视频列</td></tr>
+    <tr><th>N</th><td>定位未答题</td></tr>
+    <tr><th>Esc</th><td>取消聚焦</td></tr>
+  </table>
+</div>
+
+<div class="sec">
+  <div class="title">质检模式 · 快捷键</div>
+  <table class="keys">
+    <tr><th>1 / 2</th><td>通过 / 不通过（不通过自动跳到修正分）</td></tr>
+    <tr><th>1~5（修正分）</th><td>填 0 / 0.25 / 0.5 / 0.75 / 1</td></tr>
+    <tr><th>` 或 ~（修正分）</th><td>填 none</td></tr>
+    <tr><th>Enter（修正分）</th><td>切换到手动输入模式（橙框）</td></tr>
+    <tr><th>Esc（修正分）</th><td>退出修正分回到通过/不通过</td></tr>
+  </table>
+</div>
+
+<div class="sec">
+  <div class="title">通用 · 快捷键</div>
+  <table class="keys">
+    <tr><th><span class="kbd-mod">⌘/Ctrl</span>+Shift+0</th><td>悬浮窗 + 工具栏复位</td></tr>
+    <tr><th><span class="kbd-mod">⌘/Ctrl</span>+Shift+P</th><td>画中画（可拖副屏）</td></tr>
+    <tr><th><span class="kbd-mod">⌘/Ctrl</span>+Shift+M</th><td>定位未答题</td></tr>
+    <tr><th><span class="kbd-mod">⌘/Ctrl</span>+Z</th><td>撤销最近一次批量打分</td></tr>
+    <tr><th>? / / / 、</th><td>打开/关闭帮助面板</td></tr>
+  </table>
+</div>
+
+<div class="foot">
+  <div class="author">
+    <div class="author-name">godwayxiong熊</div>
+    <div class="author-sub">腾讯 · 云雀 · 实习生</div>
+  </div>
+  <div class="hint">仅作用于 qlabel.qq.com · <span id="verBottom">v-</span></div>
+  <div class="hint">反馈：<a href="mailto:825121444@qq.com">825121444@qq.com</a></div>
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>

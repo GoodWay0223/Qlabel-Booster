@@ -1,0 +1,1239 @@
+/* ===== QLabel Booster 样式（所有类名以 qlb- 为前缀） ===== */
+
+/**
+ * v1.9.9：CSS 主题色变量。后续新增 UI 优先用这些变量，便于将来一处改色全局生效。
+ * 现有硬编码颜色保持不动（避免大面积视觉回归），逐步迁移。
+ *
+ * v1.9.10：新增字体栈变量。覆盖 macOS / Windows / Linux 主流系统字体，并明确指定中文字体。
+ *   - macOS：SF Pro（-apple-system / BlinkMacSystemFont） + 苹方
+ *   - Windows：Segoe UI Variable / Segoe UI + 微软雅黑（"Microsoft YaHei UI" 优先于老的 YaHei）
+ *   - Linux：Inter / Source Sans 3 / "PingFang SC" / "Noto Sans CJK SC"
+ *   - 兜底：sans-serif
+ *   不引入任何外部字体（无额外加载、不需要权限）
+ */
+:root {
+  --qlb-color-pass: #16a34a;          /* 通过 / 完成 / 成功 */
+  --qlb-color-pass-bg: rgba(22, 163, 74, 0.08);
+  --qlb-color-fail: #dc2626;          /* 不通过 / 错误 / 警告 */
+  --qlb-color-fail-bg: rgba(220, 38, 38, 0.07);
+  --qlb-color-focus: #3b82f6;         /* 蓝色聚焦框 */
+  --qlb-color-focus-bg: rgba(59, 130, 246, 0.04);
+  --qlb-color-focus-fix: #f97316;     /* 橙色手动输入框 */
+  --qlb-color-focus-fix-bg: rgba(249, 115, 22, 0.06);
+  --qlb-color-mode-label: #93c5fd;    /* 标注模式 chip */
+  --qlb-color-mode-qa: #d8b4fe;       /* 质检模式 chip */
+  --qlb-color-warn: #f59e0b;          /* 0.5 / 中等 */
+  --qlb-color-neutral: #6b7280;       /* none / 中性灰 */
+  --qlb-bg-toolbar: rgba(20, 24, 34, 0.92);
+  --qlb-bg-player: rgba(10, 12, 18, 0.96);
+  --qlb-radius: 12px;
+  --qlb-shadow-card: 0 10px 32px rgba(0, 0, 0, 0.4);
+  /* 字体栈 */
+  --qlb-font-sans:
+    -apple-system, BlinkMacSystemFont,
+    "Segoe UI Variable Display", "Segoe UI",
+    "Helvetica Neue", Helvetica, Arial,
+    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei UI", "Microsoft YaHei",
+    "Source Han Sans SC", "Noto Sans CJK SC", "WenQuanYi Micro Hei",
+    sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  --qlb-font-mono:
+    "SF Mono", "JetBrains Mono", "Fira Code", "Cascadia Code",
+    Menlo, Consolas, "Roboto Mono", "Ubuntu Mono", monospace;
+  /* 字体平滑（mac/iOS Webkit 渲染优化） */
+  --qlb-font-features: "cv11", "ss01", "ss03"; /* SF Pro 的可读性变体 */
+}
+
+/* v1.9.10：所有插件 UI 启用字体平滑（mac WebKit 渲染更细腻 / win 也有改善） */
+.qlb-toolbar,
+.qlb-player,
+.qlb-modal,
+.qlb-toast,
+.qlb-qa-prompt-pin,
+.qlb-qa-fix-bar,
+.qlb-col-bar,
+.qlb-dim-bar,
+.qlb-qa-col-bar {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: var(--qlb-font-features);
+  text-rendering: optimizeLegibility;
+}
+
+/* v1.9.16：屏蔽"横向滚到边缘时浏览器接管为返回上一页"的导航手势。
+ * 对所有横滚轨道 .cr-container-col--18 生效（标注页 / 质检页都共用此类名）。
+ * v1.9.22：再加一层 html/body 级别的兜底，防止在"非横滚轨道区域"横滑
+ *   时浏览器仍然识别为 history-nav 手势（wheel-pan.js 的 preventDefault
+ *   在 passive/第三方 iframe 场景偶尔会不起作用）。
+ */
+html,
+body {
+  overscroll-behavior-x: contain;
+}
+.cr-container-col--18 {
+  overscroll-behavior-x: contain !important;
+}
+
+/* 聚焦高亮（v1.9.33：提升权重 + 多重视觉效果，避免被站点样式覆盖）
+ * - 用 [class] 属性选择器提权到 (0,0,2,0)，比任何单 class 高
+ * - 同时用 outline + box-shadow + background-color 三重视觉，任一被站点覆盖仍有另外两个生效
+ */
+.qlb-focused[class],
+[class].qlb-focused {
+  outline: 2px solid #3b82f6 !important;
+  outline-offset: 2px !important;
+  background-color: rgba(59, 130, 246, 0.08) !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35), inset 0 0 0 1px rgba(59, 130, 246, 0.3) !important;
+  border-radius: 4px !important;
+  transition: outline-color 0.15s ease;
+}
+
+/* 未答题高亮（红色脉冲） */
+.qlb-missing-highlight[class],
+[class].qlb-missing-highlight {
+  outline: 2px solid #ff4d4f !important;
+  outline-offset: 2px !important;
+  background-color: rgba(255, 77, 79, 0.05) !important;
+  border-radius: 4px !important;
+  animation: qlb-pulse 1.4s ease-in-out infinite;
+}
+@keyframes qlb-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 77, 79, 0.55); }
+  50% { box-shadow: 0 0 0 6px rgba(255, 77, 79, 0); }
+}
+
+/* 定位未答题的"当前目标"—— 红色强脉冲，同样用属性选择器提权 */
+.qlb-missing-target[class],
+[class].qlb-missing-target {
+  outline: 3px solid #ef4444 !important;
+  outline-offset: 3px !important;
+  background-color: rgba(255, 77, 79, 0.14) !important;
+  border-radius: 4px !important;
+  animation: qlb-pulse-strong 1s ease-in-out infinite !important;
+  position: relative;
+  z-index: 1;
+}
+@keyframes qlb-pulse-strong {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.75); }
+  50% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+}
+
+/* 顶部拦截提示条 */
+.qlb-bar {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2147483646;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 18px;
+  background: rgba(24, 28, 38, 0.92);
+  color: #fff;
+  border: 1px solid rgba(255, 77, 79, 0.6);
+  border-radius: 10px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(12px);
+  font-size: 14px;
+  font-family: var(--qlb-font-sans);
+  animation: qlb-slide-down 0.2s ease-out;
+}
+@keyframes qlb-slide-down {
+  from { opacity: 0; transform: translate(-50%, -10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+.qlb-bar__icon {
+  font-size: 20px;
+  color: #ff4d4f;
+}
+.qlb-bar__text { line-height: 1.4; }
+.qlb-bar__text b { color: #ff7875; font-weight: 600; margin: 0 2px; }
+.qlb-bar__actions { display: flex; gap: 8px; }
+
+/* 通用按钮 */
+.qlb-btn {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1.2;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  font-family: inherit;
+}
+.qlb-btn:hover { background: rgba(255, 255, 255, 0.18); }
+.qlb-btn--primary {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+.qlb-btn--primary:hover { background: #1d4ed8; }
+.qlb-btn--danger {
+  background: #dc2626;
+  border-color: #dc2626;
+}
+.qlb-btn--danger:hover { background: #b91c1c; }
+
+/* 右下角主工具栏 */
+.qlb-toolbar {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 2147483645;
+  width: 256px;
+  /* v1.9.7：超小屏 / 高分屏自适应 —— 永远不超过 92vw、不超过 92vh */
+  max-width: min(92vw, 320px);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  background: rgba(20, 24, 34, 0.92);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.4);
+  font-family: var(--qlb-font-sans);
+  font-size: 13px;
+  backdrop-filter: blur(14px);
+  overflow: hidden;
+  user-select: none;
+}
+.qlb-toolbar__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  gap: 6px;
+}
+.qlb-toolbar__logo {
+  font-weight: 600;
+  letter-spacing: 0.1px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+  line-height: 1;
+  flex: 1;
+  min-width: 0;
+}
+/* 主文字部分允许省略；chip 永远完整显示 */
+.qlb-toolbar__logo-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.qlb-toolbar__head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.qlb-toolbar__body { padding: 8px 10px 10px; }
+.qlb-toolbar--collapsed .qlb-toolbar__body { display: none; }
+
+/* v1.6.7：统一图标按钮 —— 正方形 26x26，字号一致，居中对齐 */
+.qlb-icon-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #cbd5e1;
+  cursor: pointer;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.qlb-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.10);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+.qlb-icon-btn:active { transform: translateY(1px); }
+
+/* v1.6.7：折叠按钮用纯 CSS 画图标，状态跟随 .qlb-toolbar--collapsed */
+.qlb-collapse-ico {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  display: inline-block;
+}
+/* 默认展开：显示"减号（–）"，点击可折叠 */
+.qlb-collapse-ico::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  background: currentColor;
+  border-radius: 1px;
+  transform: translateY(-50%);
+}
+/* 折叠后：加一竖 → 变"加号（+）"，点击可展开 */
+.qlb-collapse-ico::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: currentColor;
+  border-radius: 1px;
+  transform: translateX(-50%) scaleY(0);
+  transform-origin: center;
+  transition: transform 0.18s cubic-bezier(.2,1.2,.4,1);
+}
+.qlb-toolbar--collapsed .qlb-collapse-ico::after {
+  transform: translateX(-50%) scaleY(1);
+}
+.qlb-toolbar__author {
+  font-size: 10px;
+  font-weight: 400;
+  color: #9ca3af;
+  letter-spacing: 0.3px;
+}
+
+.qlb-section { margin-top: 6px; }
+.qlb-section:first-child { margin-top: 0; }
+.qlb-section__title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: #9ca3af;
+  margin-bottom: 4px;
+  letter-spacing: 0.3px;
+}
+.qlb-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.qlb-row .qlb-btn { flex: 1; min-width: 0; }
+
+/* v1.7.1：视频区专属布局 —— 两个开关并排一行 + 4 个按钮 2×2 网格 */
+.qlb-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 6px;
+  margin-bottom: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+}
+.qlb-switch-row .qlb-switch { flex: 1; min-width: 0; justify-content: flex-start; }
+
+.qlb-grid {
+  display: grid;
+  gap: 6px;
+}
+.qlb-grid--2 {
+  grid-template-columns: 1fr 1fr;
+}
+/* 带图标 + 文字的小按钮：横向居中、图标字号稍大，文字贴在右侧 */
+.qlb-btn--icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 8px;
+  font-size: 12.5px;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+.qlb-btn--icon .qlb-btn__ico {
+  font-size: 14px;
+  line-height: 1;
+  color: #93c5fd;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+/* v1.9.44：emoji 图标（🔍 等）在某些字体里渲染比 unicode 单色字符大一截，
+   略微缩小并轻微下移让视觉重量与 ↶ ↺ ⤒ ⤓ 等保持一致。
+   `font-variant-emoji: text` 在支持的浏览器里强制单色文本风格（Chrome 117+），
+   不支持的浏览器回落到默认彩色，仍可读。 */
+.qlb-btn--icon .qlb-btn__ico--emoji {
+  font-size: 12px;
+  font-variant-emoji: text;
+}
+.qlb-btn--icon:hover .qlb-btn__ico {
+  color: #fff;
+  transform: scale(1.12);
+}
+.qlb-btn--icon .qlb-btn__lbl {
+  letter-spacing: 0.2px;
+}
+
+.qlb-progress {
+  color: #93c5fd;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.qlb-progress--done { color: #4ade80; }
+
+/* 分值按钮配色 */
+.qlb-btn--s0 { background: #7f1d1d; border-color: #991b1b; }
+.qlb-btn--s0:hover { background: #991b1b; }
+.qlb-btn--s05 { background: #713f12; border-color: #854d0e; }
+.qlb-btn--s05:hover { background: #854d0e; }
+.qlb-btn--s1 { background: #14532d; border-color: #15803d; }
+.qlb-btn--s1:hover { background: #15803d; }
+.qlb-btn--snone { background: #374151; border-color: #4b5563; }
+.qlb-btn--snone:hover { background: #4b5563; }
+
+/* ==========================================================================
+ * v1.9.41：当前音频聚焦视频的"淡蓝色框"
+ * v1.9.43：加呼吸效果（仅 box-shadow 透明度，节省 GPU；尊重系统降低动画偏好）
+ * 目标：让用户一眼看见"现在出声的是哪个视频"
+ *
+ * 选择器加 [class] 提权到 (0,0,2,0)，覆盖站点 .cr-container-col* 的 padding/border 样式。
+ * 用 outline 而不是 border —— outline 不挤压布局（border 会让相邻列突然位移）。
+ * box-shadow 给一层柔和外辉光，配合 outline 在深浅背景下都醒目。
+ * ========================================================================== */
+@keyframes qlb-audio-breath {
+  0%, 100% {
+    box-shadow:
+      0 0 0 1px rgba(96, 165, 250, 0.35),
+      0 0 6px rgba(96, 165, 250, 0.30);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px rgba(96, 165, 250, 0.55),
+      0 0 16px rgba(96, 165, 250, 0.65);
+  }
+}
+.qlb-audio-active[class],
+[class].qlb-audio-active {
+  outline: 3px solid #60a5fa !important;     /* 淡蓝 */
+  outline-offset: -1px !important;
+  border-radius: 4px;
+  /* 呼吸：只动 box-shadow（GPU 友好，不触发 layout/paint 整页） */
+  animation: qlb-audio-breath 2.6s ease-in-out infinite;
+  transition: outline-color 0.18s ease !important;
+}
+/* 用户系统设置了"减少动画" → 关掉呼吸，降级为静态发光 */
+@media (prefers-reduced-motion: reduce) {
+  .qlb-audio-active[class],
+  [class].qlb-audio-active {
+    animation: none !important;
+    box-shadow:
+      0 0 0 1px rgba(96, 165, 250, 0.35),
+      0 0 12px rgba(96, 165, 250, 0.45) !important;
+  }
+}
+
+/* 列顶 & 维度标题旁胶囊 */
+.qlb-col-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  padding: 6px 8px;
+  margin: 6px 0;
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px dashed rgba(59, 130, 246, 0.4);
+  border-radius: 6px;
+  font-size: 12px;
+}
+.qlb-col-bar__label {
+  color: #3b82f6;
+  font-weight: 600;
+  margin-right: 4px;
+}
+.qlb-dim-bar {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: 10px;
+  vertical-align: middle;
+}
+.qlb-pill {
+  appearance: none;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: #fff;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  cursor: pointer;
+  line-height: 1.4;
+  color: #374151;
+  transition: all 0.12s ease;
+  font-family: inherit;
+}
+.qlb-pill:hover { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
+.qlb-pill--s0 { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+.qlb-pill--s05 { background: #fef3c7; color: #854d0e; border-color: #fde68a; }
+.qlb-pill--s1 { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
+.qlb-pill--snone { background: #f3f4f6; color: #374151; border-color: #e5e7eb; }
+
+/* Toast */
+#qlb-toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  padding: 8px 16px;
+  background: rgba(20, 24, 34, 0.95);
+  color: #fff;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: var(--qlb-font-sans);
+  z-index: 2147483647;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+#qlb-toast.qlb-toast--show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* 悬浮视频窗 */
+.qlb-player {
+  position: fixed;
+  right: 20px;
+  bottom: 260px;
+  width: 360px;
+  height: 220px;
+  /* v1.9.7：小屏 / 缩放浏览器时永远不超出视口；最大不超过 90vw × 60vh */
+  max-width: min(90vw, 720px);
+  max-height: min(60vh, 480px);
+  min-width: 240px;
+  min-height: 160px;
+  z-index: 2147483644;
+  background: rgba(10, 12, 18, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: var(--qlb-font-sans);
+  color: #fff;
+  font-size: 12px;
+  user-select: none;
+}
+.qlb-player__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: rgba(0,0,0,0.35);
+  cursor: move;
+}
+.qlb-player__title { font-weight: 600; }
+.qlb-player__controls { display: flex; align-items: center; gap: 4px; }
+.qlb-player__controls button {
+  appearance: none;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.05);
+  color: #fff;
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, border-color 0.12s, transform 0.12s;
+}
+.qlb-player__controls button:hover {
+  background: rgba(255,255,255,0.18);
+  border-color: rgba(255,255,255,0.28);
+}
+.qlb-player__controls button:active { transform: translateY(1px); }
+/* ⛶ 等几何字符比箭头略小，单独提一档 */
+.qlb-player__controls button[data-action="pip"] {
+  font-size: 15px;
+}
+/* SVG 复位图标：用 currentColor 自动跟随按钮颜色 */
+.qlb-player__controls button[data-action="reset"] svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+.qlb-player__controls button[data-action="close"] {
+  font-size: 12px;
+  color: #fca5a5;
+}
+.qlb-player__controls button[data-action="close"]:hover {
+  background: rgba(220, 38, 38, 0.25);
+  border-color: rgba(220, 38, 38, 0.5);
+  color: #fff;
+}
+.qlb-player__controls button.qlb-player__pip--on {
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  border-color: #6366f1;
+  color: #fff;
+  box-shadow: 0 0 0 2px rgba(99,102,241,0.25);
+}
+.qlb-player__rate {
+  appearance: none;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #fff;
+  border-radius: 5px;
+  padding: 0 4px;
+  font-size: 11px;
+  height: 24px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.qlb-player__rate:hover {
+  background: rgba(255,255,255,0.18);
+  border-color: rgba(255,255,255,0.28);
+}
+.qlb-player__rate:focus {
+  outline: none;
+  background: rgba(255,255,255,0.18);
+  border-color: rgba(99,102,241,0.6);
+  box-shadow: 0 0 0 2px rgba(99,102,241,0.22);
+}
+.qlb-player__idx { min-width: 72px; text-align: center; color: #9ca3af; font-size: 12px; }
+.qlb-player__body {
+  flex: 1;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.qlb-player__body video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+}
+.qlb-player__empty {
+  color: #9ca3af;
+  font-size: 12px;
+  padding: 16px;
+  text-align: center;
+}
+.qlb-player__resizer {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 22px;
+  height: 22px;
+  cursor: nwse-resize;
+  /* 浮在视频控件之上，避免被原生 controls 挡住 */
+  z-index: 3;
+  background:
+    linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.55) 50%);
+  border-bottom-right-radius: 10px;
+  transition: background 0.15s;
+}
+.qlb-player__resizer::after {
+  /* 右下角三道斜线，视觉提示更明显 */
+  content: "";
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 12px;
+  height: 12px;
+  background-image:
+    linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.9) 40%, rgba(255,255,255,0.9) 50%, transparent 50%),
+    linear-gradient(135deg, transparent 60%, rgba(255,255,255,0.9) 60%, rgba(255,255,255,0.9) 70%, transparent 70%),
+    linear-gradient(135deg, transparent 80%, rgba(255,255,255,0.9) 80%, rgba(255,255,255,0.9) 90%, transparent 90%);
+  pointer-events: none;
+}
+.qlb-player__resizer:hover {
+  background:
+    linear-gradient(135deg, transparent 50%, rgba(59,130,246,0.85) 50%);
+}
+.qlb-player--resizing {
+  user-select: none;
+  outline: 2px solid rgba(59,130,246,0.8);
+  outline-offset: -2px;
+}
+.qlb-player--resizing video {
+  pointer-events: none; /* resize 进行中禁止 video 吞事件 */
+}
+
+/* ===== 视频循环开关（iOS 风小开关） ===== */
+.qlb-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  color: #d1d5db;
+  user-select: none;
+}
+.qlb-switch input { display: none; }
+.qlb-switch__slider {
+  width: 26px;
+  height: 14px;
+  background: #4b5563;
+  border-radius: 999px;
+  position: relative;
+  transition: background 0.18s ease;
+}
+.qlb-switch__slider::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 10px;
+  height: 10px;
+  background: #fff;
+  border-radius: 50%;
+  transition: left 0.18s ease;
+}
+.qlb-switch input:checked + .qlb-switch__slider {
+  background: #22c55e;
+}
+.qlb-switch input:checked + .qlb-switch__slider::before {
+  left: 14px;
+}
+.qlb-switch__label { letter-spacing: 0.2px; }
+
+/* ===== 快捷键帮助弹窗 ===== */
+.qlb-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--qlb-font-sans);
+  animation: qlb-modal-in 0.15s ease-out;
+}
+@keyframes qlb-modal-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.qlb-modal__mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(2px);
+}
+.qlb-modal__panel {
+  position: relative;
+  /* v1.6.8：再次放宽，容纳加大字号；大屏舒展、小屏自适应 */
+  width: 720px;
+  max-width: min(94vw, 780px);
+  max-height: 92vh;
+  background: #fff;
+  color: #1f2937;
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: qlb-modal-zoom 0.18s cubic-bezier(.2,1.2,.4,1);
+}
+@keyframes qlb-modal-zoom {
+  from { transform: scale(0.92); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.qlb-modal__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  font-weight: 600;
+  font-size: 17px;
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  color: #fff;
+  flex-shrink: 0;
+}
+.qlb-modal__head .qlb-icon-btn {
+  color: rgba(255,255,255,0.85);
+}
+.qlb-modal__head .qlb-icon-btn:hover {
+  background: rgba(255,255,255,0.18);
+  color: #fff;
+}
+.qlb-modal__body {
+  padding: 8px 20px 14px;
+  font-size: 14.5px;
+  line-height: 1.6;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.qlb-modal__body::-webkit-scrollbar { width: 8px; }
+.qlb-modal__body::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+.qlb-modal__body::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+.qlb-kbd-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.qlb-kbd-table th {
+  text-align: left;
+  color: #2563eb;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  padding: 10px 0 4px;
+  border-bottom: 1px solid #e5e7eb;
+}
+.qlb-kbd-table td {
+  padding: 4px 8px 4px 0;
+  vertical-align: top;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  font-size: 13.5px;
+  color: #374151;
+}
+.qlb-kbd-table td:first-child {
+  width: 180px;
+  white-space: normal;
+  line-height: 2;
+}
+
+/* 质检表行更紧凑（条目较多） + 第一列加宽容纳组合键 */
+.qlb-kbd-table--qa th {
+  padding: 7px 0 3px;
+  font-size: 12.5px;
+}
+.qlb-kbd-table--qa td {
+  padding: 2px 8px 2px 0;
+  font-size: 12.8px;
+}
+.qlb-kbd-table--qa td:first-child {
+  width: 156px;
+  line-height: 1.7;
+}
+.qlb-kbd-table--qa kbd {
+  font-size: 11px;
+  padding: 1px 6px;
+  margin: 1px;
+}
+.qlb-kbd-table kbd {
+  display: inline-block;
+  min-width: 22px;
+  padding: 2px 8px;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  font-family: var(--qlb-font-mono);
+  font-size: 12px;
+  color: #374151;
+  margin: 1px 2px;
+  white-space: nowrap;
+}
+.qlb-kbd-tip {
+  padding: 10px 12px !important;
+  background: #f9fafb;
+  border-radius: 8px;
+  color: #4b5563;
+  font-size: 13px;
+  line-height: 1.65;
+  word-break: break-word;
+}
+/* v1.9.28：帮助面板内的文档外链（评估标注标准细则 / 质检问题共识） */
+.qlb-doc-link {
+  color: #2563eb !important;
+  text-decoration: underline !important;
+  font-weight: 600;
+  cursor: pointer;
+  margin: 0 2px;
+}
+.qlb-doc-link:hover {
+  color: #1d4ed8 !important;
+  text-decoration: underline !important;
+}
+.qlb-doc-link:visited {
+  color: #2563eb !important;
+}
+.qlb-kbd-tip code {
+  background: #eef2ff;
+  color: #3730a3;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: var(--qlb-font-mono);
+  font-size: 12.5px;
+}
+/* v1.6.8：双栏布局，间距放宽 */
+.qlb-help-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 24px;
+}
+.qlb-help-col { min-width: 0; }
+.qlb-help-tips {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+/* 小屏（<= 640px 宽）自动退化为单栏 */
+@media (max-width: 640px) {
+  .qlb-help-grid { grid-template-columns: 1fr; }
+}
+.qlb-modal__foot {
+  padding: 10px 20px;
+  background: #f9fafb;
+  border-top: 1px solid #f3f4f6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: 12.5px;
+  color: #6b7280;
+  flex-shrink: 0;
+}
+.qlb-modal__author b {
+  color: #2563eb;
+  font-weight: 600;
+}
+.qlb-modal__author a {
+  text-decoration: none;
+  border-bottom: 1px dashed transparent;
+  transition: border-color 0.15s;
+}
+.qlb-modal__author a:hover {
+  border-bottom-color: #2563eb;
+}
+.qlb-modal__author a:hover b {
+  color: #1d4ed8;
+}
+.qlb-modal__feedback a {
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 600;
+}
+.qlb-modal__feedback a:hover {
+  text-decoration: underline;
+}
+
+/* ===== 工具栏拖拽 ===== */
+.qlb-toolbar__head--draggable {
+  cursor: grab;
+}
+.qlb-toolbar__head--draggable:active {
+  cursor: grabbing;
+}
+.qlb-toolbar--dragging {
+  opacity: 0.92;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+  transition: none !important;
+}
+/* 拖拽时给 head 左边加一个小把手图标暗示 */
+.qlb-toolbar__head--draggable::before {
+  content: "⋮⋮";
+  display: inline-block;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 9px;
+  letter-spacing: -1px;
+  margin-right: 2px;
+  line-height: 1;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+ * v1.8.0：质检（QA）模式专属样式
+ * ============================================================ */
+
+/* 模式 chip（工具栏 logo 旁） */
+.qlb-mode-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-left: 2px;
+  padding: 1px 6px;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.22);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.45);
+  vertical-align: middle;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.qlb-mode-chip--qa {
+  background: rgba(168, 85, 247, 0.22);
+  color: #d8b4fe;
+  border-color: rgba(168, 85, 247, 0.5);
+}
+
+/* 模式互斥显示：默认两区都显示，根据 toolbar 类名隐藏其中一个 */
+.qlb-toolbar--qa .qlb-mode-only-label { display: none !important; }
+.qlb-toolbar--label .qlb-mode-only-qa { display: none !important; }
+/* 默认（未识别模式）= label 视图 */
+.qlb-toolbar:not(.qlb-toolbar--qa):not(.qlb-toolbar--label) .qlb-mode-only-qa { display: none !important; }
+
+/* 工具栏「全部通过 / 全部不通过」按钮 */
+.qlb-btn--qa-pass { background: #15803d; border-color: #16a34a; }
+.qlb-btn--qa-pass:hover { background: #16a34a; }
+.qlb-btn--qa-fail { background: #b91c1c; border-color: #dc2626; }
+.qlb-btn--qa-fail:hover { background: #dc2626; }
+
+/* 题目列表里 —— 序号前缀 */
+.qlb-qa-seq {
+  display: inline-block;
+  min-width: 22px;
+  margin-right: 4px;
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #a855f7, #6366f1);
+  border-radius: 4px;
+  letter-spacing: 0.3px;
+  vertical-align: middle;
+  line-height: 1.5;
+}
+
+/* 列顶 QA 控制条 */
+.qlb-qa-col-bar {
+  background: rgba(168, 85, 247, 0.08);
+  border-color: rgba(168, 85, 247, 0.4);
+}
+.qlb-qa-col-bar .qlb-col-bar__label {
+  color: #a855f7;
+}
+.qlb-qa-col-bar .qlb-qa-pill--pass {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+.qlb-qa-col-bar .qlb-qa-pill--fail {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+.qlb-qa-col-stats {
+  margin-left: auto;
+  font-size: 11px;
+  letter-spacing: 0.3px;
+}
+
+/* 通过 → 整题淡绿色背景 */
+.qlb-qa-pass {
+  background: rgba(22, 163, 74, 0.08) !important;
+  box-shadow: inset 3px 0 0 0 rgba(22, 163, 74, 0.55);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+/* 不通过 → 整题淡红色背景 */
+.qlb-qa-fail {
+  background: rgba(220, 38, 38, 0.07) !important;
+  box-shadow: inset 3px 0 0 0 rgba(220, 38, 38, 0.5);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+/* 当前聚焦的"通过/不通过"题目（pass 模式）→ 蓝色 outline */
+.qlb-qa-focus {
+  outline: 2px solid #3b82f6 !important;
+  outline-offset: 1px;
+  border-radius: 4px;
+  position: relative;
+  z-index: 1;
+}
+
+/* 当前聚焦的修正分输入项（fix 模式 · 快捷子状态）→ 蓝色 outline */
+.qlb-qa-focus-fix {
+  outline: 2px solid #3b82f6 !important;
+  outline-offset: 2px;
+  border-radius: 6px;
+  background: rgba(59, 130, 246, 0.04) !important;
+  position: relative;
+  z-index: 1;
+}
+.qlb-qa-focus-fix input.tea-input {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.18);
+}
+
+/* 当前聚焦的修正分输入项（fix 模式 · 手动子状态）→ 橙色 outline + 用户可输入 */
+.qlb-qa-fix-manual {
+  outline-color: #f97316 !important;
+  background: rgba(249, 115, 22, 0.06) !important;
+}
+.qlb-qa-fix-manual input.tea-input {
+  border-color: #f97316 !important;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.22) !important;
+  background: #fff !important;
+  cursor: text !important;
+}
+/* 手动模式给 input 加一个浮动小提示，提醒输入规则与确认方式 */
+.qlb-qa-fix-manual::after {
+  content: '✍ 自由输入 0~1 之间两位小数，Enter 确认';
+  position: absolute;
+  top: -22px;
+  right: 0;
+  font-size: 10.5px;
+  color: #f97316;
+  background: rgba(255, 247, 237, 0.95);
+  border: 1px solid rgba(249, 115, 22, 0.4);
+  padding: 1px 8px;
+  border-radius: 4px;
+  pointer-events: none;
+  white-space: nowrap;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+/* 修正分胶囊条：常驻在每个修正分输入框下方，一键打分 */
+.qlb-qa-fix-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+.qlb-qa-fix-pill {
+  appearance: none;
+  flex: 0 0 auto;
+  padding: 3px 10px;
+  background: #fff;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  line-height: 1.5;
+  transition: all 0.12s ease;
+}
+.qlb-qa-fix-pill:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  filter: brightness(0.95);
+}
+.qlb-qa-fix-pill:active { transform: translateY(0); }
+
+/* 6 档配色（参考标注模式 + 中间档渐变补色） */
+/* 0 分 = 红（最差） */
+.qlb-qa-fix-pill--v0 {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+/* 0.25 分 = 橙 */
+.qlb-qa-fix-pill--v0_25 {
+  background: #fed7aa;
+  color: #9a3412;
+  border-color: #fdba74;
+}
+/* 0.5 分 = 黄（与标注模式 0.5 一致） */
+.qlb-qa-fix-pill--v0_5 {
+  background: #fef3c7;
+  color: #854d0e;
+  border-color: #fde68a;
+}
+/* 0.75 分 = 黄绿 */
+.qlb-qa-fix-pill--v0_75 {
+  background: #ecfccb;
+  color: #3f6212;
+  border-color: #d9f99d;
+}
+/* 1 分 = 绿（与标注模式 1 一致） */
+.qlb-qa-fix-pill--v1 {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+/* none = 灰（与标注模式 none 一致） */
+.qlb-qa-fix-pill--vnone {
+  background: #f3f4f6;
+  color: #374151;
+  border-color: #e5e7eb;
+}
+
+.qlb-qa-fix-pill--just-clicked {
+  background: linear-gradient(135deg, #16a34a, #059669) !important;
+  border-color: #059669 !important;
+  color: #fff !important;
+  animation: qlb-pill-flash 0.4s ease-out;
+}
+@keyframes qlb-pill-flash {
+  0% { transform: scale(1.15); box-shadow: 0 0 0 6px rgba(22, 163, 74, 0); }
+  60% { transform: scale(1); box-shadow: 0 0 0 6px rgba(22, 163, 74, 0); }
+  100% { transform: scale(1); }
+}
+
+/* 左侧 Prompt / 参考图视频区 就地 sticky 标记类（实际定位由 inline style 完成）
+   不加任何背景色 —— 视觉上完全和原网页一致，只是滚动时它会自己钉住 */
+.qlb-qa-sticky-prompt {
+  /* 仅作为 hook 用，不要加背景色 */
+}
+
+/* ============================================================
+ * v1.9.7：屏幕分辨率 / 像素密度自适应
+ * ============================================================ */
+
+/* 超小屏（笔记本 13" / 缩放窗口 < 1280px）—— 工具栏更紧凑 */
+@media (max-width: 1280px) {
+  .qlb-toolbar { width: 232px; font-size: 12.5px; }
+  .qlb-toolbar__head { padding: 6px 10px; }
+  .qlb-section { padding: 8px 10px 10px; }
+  .qlb-btn { padding: 5px 8px; font-size: 12px; }
+  .qlb-btn--icon { padding: 5px 6px; font-size: 12px; }
+  .qlb-btn--icon .qlb-btn__ico { font-size: 13px; }
+  .qlb-player { width: 320px; height: 200px; }
+}
+
+/* 超超小屏（缩放窗口 < 1024px / 移动端）—— 进一步收紧 */
+@media (max-width: 1024px) {
+  .qlb-toolbar { width: 220px; right: 12px; bottom: 12px; }
+  .qlb-player { width: 280px; height: 175px; right: 12px; bottom: 220px; }
+  .qlb-modal__panel { max-width: 96vw; max-height: 88vh; }
+}
+
+/* 大屏 / 4K（>= 2560px 宽）—— 适当放大，避免显得太小 */
+@media (min-width: 2560px) {
+  .qlb-toolbar { width: 288px; font-size: 14px; }
+  .qlb-btn { font-size: 13px; }
+  .qlb-player { width: 420px; height: 252px; }
+}
+
+/* HiDPI / Retina 屏幕：优化字体渲染 */
+@media (min-resolution: 1.5dppx), (-webkit-min-device-pixel-ratio: 1.5) {
+  .qlb-toolbar,
+  .qlb-player,
+  .qlb-modal__panel,
+  .qlb-qa-prompt-pin {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  /* 1px 边框在 HiDPI 上偏粗，用半透明色替代实色让边显得更精细 */
+  .qlb-toolbar { border-color: rgba(255, 255, 255, 0.06); }
+  .qlb-player { border-color: rgba(255, 255, 255, 0.08); }
+}
+
+/* 横屏窄高度（< 600px 高，常见于旋转的笔记本副屏 / 半屏窗口）—— 帮助弹窗压缩高度 */
+@media (max-height: 600px) {
+  .qlb-modal__panel { max-height: 96vh; }
+  .qlb-player { max-height: 50vh; }
+  .qlb-toolbar { max-height: calc(100vh - 24px); }
+}
+
+/* 用户浏览器开启了"减少动效"偏好 —— 关闭非必要的过渡和动画 */
+@media (prefers-reduced-motion: reduce) {
+  .qlb-toolbar,
+  .qlb-btn,
+  .qlb-player,
+  .qlb-icon-btn,
+  .qlb-qa-fix-pill,
+  .qlb-pill {
+    transition: none !important;
+    animation: none !important;
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "manifest_version": 3,
+  "name": "QLabel Booster",
+  "version": "1.9.53",
+  "description": "腾讯 QLabel / EvalVerse视频打分提效插件，标注+质检双模式：一键批量打分、悬浮循环视频窗、键盘快捷键、未答题定位等功能。Built by 实习生godwayxiong熊🐼。",
+  "author": "godwayxiong熊 (实习生)",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "QLabel Booster",
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://qlabel.qq.com/*",
+    "http://qlabel.qq.com/*",
+    "*://*.qlabel.qq.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://qlabel.qq.com/*",
+        "http://qlabel.qq.com/*",
+        "*://*.qlabel.qq.com/*"
+      ],
+      "js": [
+        "src/selectors.js",
+        "src/state.js",
+        "src/platform.js",
+        "src/mode.js",
+        "src/scorer.js",
+        "src/navigator.js",
+        "src/missing.js",
+        "src/floating-player.js",
+        "src/scroll-sync.js",
+        "src/wheel-pan.js",
+        "src/qa.js",
+        "src/toolbar.js",
+        "src/content.js"
+      ],
+      "css": ["src/styles.css"],
+      "run_at": "document_end",
+      "all_frames": true
+    },
+    {
+      "matches": [
+        "https://qlabel.qq.com/*",
+        "http://qlabel.qq.com/*",
+        "*://*.qlabel.qq.com/*"
+      ],
+      "js": ["src/page-bridge.js"],
+      "run_at": "document_end",
+      "all_frames": true,
+      "world": "MAIN"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/*.png"],
+      "matches": ["*://*.qlabel.qq.com/*"]
+    }
+  ]
+}
