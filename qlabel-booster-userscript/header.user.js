@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         QLabel Booster
-// @name:zh-CN   QLabel Booster · 视频打分提效
+// @name:zh-CN   QLabel Booster · 标注质检提效
 // @namespace    https://github.com/GoodWay0223/Qlabel-Booster
 // @version      __VERSION__
-// @description  腾讯 QLabel / EvalVerse 视频打分提效工具：标注+质检双模式、批量打分、悬浮循环视频窗、键盘快捷键、未答题定位。
+// @description  腾讯 QLabel / EvalVerse 标注质检提效工具：标注+质检双模式、批量打分、悬浮循环视频窗、键盘快捷键、未答题定位。
 // @author       godwayxiong熊 (实习生) · 825121444@qq.com
 // @match        *://qlabel.qq.com/*
 // @match        *://*.qlabel.qq.com/*
