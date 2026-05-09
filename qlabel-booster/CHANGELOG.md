@@ -7,6 +7,19 @@
 
 ---
 
+## [1.9.55] - 2026-05-09
+
+### 改进
+- **标注模式下点提交，若有必答未填，自动定位到第一道未答题**：
+  - 之前虽然有 `installSystemToastWatcher` 监听系统提示，但只覆盖了 Tea UI；标注页用的是 Ant Design，没识别到所以不工作。
+  - 本版本新增对 `.ant-notification-notice` / `.ant-message-notice` / `.ant-form-item-explain-error` 等 Ant 系列容器的识别。
+  - 新增**跨 frame 监听**：插件 content_script 跑在 iframe 里、但 ant-notification 渲染在 top window，现在两边都装监听器（同源时），不会再漏。
+
+### 表现
+- 在标注模式点「提交」→ 出现「必答未填写」黄色提示 → 插件自动滚动并红色高亮第一道未答题（带 toast"📍 系统提示必答未填，已定位..."）
+
+---
+
 ## [1.9.54] - 2026-05-08
 
 ### 改名

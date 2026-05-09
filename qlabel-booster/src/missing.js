@@ -295,6 +295,31 @@
     });
     mo.observe(document.body || document.documentElement, { subtree: true, childList: true });
 
+    // v1.9.55：同源 top frame 也装一份观察器
+    // 标注页/质检页的 ant-notification 弹窗渲染在 top window，但插件 content_script 跑在 iframe，
+    // 不装跨 frame 监听就永远看不到。
+    try {
+      if (window !== window.top && window.top.document) {
+        const topDoc = window.top.document;
+        const TopMO = window.top.MutationObserver || window.MutationObserver;
+        const topMo = new TopMO((mutations) => {
+          for (const m of mutations) {
+            for (const n of m.addedNodes) {
+              if (n.nodeType !== 1) continue;
+              const txt = (n.textContent || '').trim();
+              if (!txt) continue;
+              if (!REQUIRED_MSG_RE.test(txt)) continue;
+              setTimeout(handler, 50);
+              return;
+            }
+          }
+        });
+        topMo.observe(topDoc.body || topDoc.documentElement, { subtree: true, childList: true });
+      }
+    } catch (e) {
+      // 跨域 top frame，无法监听，忽略
+    }
+
     // 兜底：从提交按钮点击之后起 5 秒内也定时扫一下
     // （部分 Toast 插入后立即移除，MutationObserver 可能漏掉）
     // v1.9.12：质检页可能用不同的"提交/保存"按钮；放宽 button 匹配条件
@@ -324,17 +349,33 @@
     );
   }
 
-  /** 从 DOM 中扫描"系统级必答提示节点" */
+  /** 从 DOM 中扫描"系统级必答提示节点"
+   *
+   *  v1.9.55：
+   *  - 新增 ant-design 系列容器（.ant-notification-notice / .ant-message-notice / .ant-form-item-explain-error 等）
+   *  - 新增跨 frame 扫描：若插件跑在 iframe 里、提示却出现在 top window，
+   *    我们尝试同源访问 top.document 一并扫描
+   */
   function scanSystemRequiredMessages() {
     const set = new Set();
-    // v1.9.12：扩展选择器范围，覆盖更多 Tea / 质检页常见的提示容器
     const sels = [
+      // Tea UI（之前已支持）
       '.tea-message', '.tea-message__main', '.tea-message-list',
       '.tea-notification', '.tea-notification__content',
       '.tea-toast', '.tea-toast__content',
       '.tea-form-ctrl__message--error',
       '.tea-form-control__status-text', '.tea-form-control__status-text--error',
       '.cr-form__error',
+      // Ant Design（v1.9.55 新增）—— QLabel 标注页"必答未填写"用的就是这套
+      '.ant-notification-notice',
+      '.ant-notification-notice-content',
+      '.ant-notification-notice-message',
+      '.ant-notification-notice-description',
+      '.ant-message-notice',
+      '.ant-message-notice-content',
+      '.ant-form-item-explain-error',
+      '.ant-form-item-has-error',
+      // 通用
       '[role="alert"]',
       '[role="status"]',
       '[class*="error-message"]',
@@ -343,18 +384,31 @@
       '[class*="error-tip"]',
       '[class*="error-text"]'
     ];
-    sels.forEach((s) => {
-      try {
-        document.querySelectorAll(s).forEach((n) => {
-          if (!n.isConnected) return;
-          // 必须对用户可见
-          const style = window.getComputedStyle(n);
-          if (style.display === 'none' || style.visibility === 'hidden') return;
-          if (parseFloat(style.opacity || '1') < 0.05) return;
-          const txt = (n.textContent || '').trim();
-          if (txt && REQUIRED_MSG_RE.test(txt)) set.add(n);
-        });
-      } catch (e) {}
+
+    // 收集要扫描的 documents（本 frame + 同源 top frame）
+    const docs = [document];
+    try {
+      if (window !== window.top && window.top.document && !docs.includes(window.top.document)) {
+        docs.push(window.top.document);
+      }
+    } catch (e) {
+      // 跨域 top，忽略
+    }
+
+    docs.forEach((doc) => {
+      sels.forEach((s) => {
+        try {
+          doc.querySelectorAll(s).forEach((n) => {
+            if (!n.isConnected) return;
+            const win = (doc.defaultView || window);
+            const style = win.getComputedStyle(n);
+            if (style.display === 'none' || style.visibility === 'hidden') return;
+            if (parseFloat(style.opacity || '1') < 0.05) return;
+            const txt = (n.textContent || '').trim();
+            if (txt && REQUIRED_MSG_RE.test(txt)) set.add(n);
+          });
+        } catch (e) {}
+      });
     });
     return Array.from(set);
   }
