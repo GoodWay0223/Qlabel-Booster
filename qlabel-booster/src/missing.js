@@ -569,10 +569,101 @@
     );
   }
 
+  /** ============================================================
+   *  v1.9.58：用户答题后自动清掉红色脉冲（不依赖 scoreOne）
+   *  ============================================================
+   *  之前 v1.9.56/57 在 scoreOne / setPass 里清红框，
+   *  但用户用鼠标直接点 0/0.5/1/none label 时**根本不走 scoreOne**（浏览器原生处理），
+   *  所以红框永远残留。
+   *
+   *  本 watcher：监听全局 click，命中打分 label 后用 microtask + rAF 检查
+   *  对应 group 的 score 是否非空，是则清掉 group 自己 + 父级 col 的红框 class。
+   *  这样无论用户用什么方式打分（鼠标 / 键盘 / 插件 API）都能清。
+   */
+  function installAnswerClearWatcher() {
+    const RED = ['qlb-missing-highlight', 'qlb-missing-target'];
+
+    function clearRedFor(group) {
+      if (!group) return;
+      try {
+        // group 自己
+        RED.forEach((c) => group.classList.remove(c));
+        // group 内部任何节点（很少见但保险）
+        group.querySelectorAll('.' + RED.join(', .')).forEach((el) =>
+          RED.forEach((c) => el.classList.remove(c))
+        );
+        // 父链上的相关容器
+        const ancestors = [
+          group.closest('.cr-container-col--8'),
+          group.closest('.cr-container-col--10'),
+          group.closest('.cr-container-row'),
+          group.closest('.tea-form-ctrl'),
+          group.closest('.tea-form-item')
+        ].filter(Boolean);
+        ancestors.forEach((el) => RED.forEach((c) => el.classList.remove(c)));
+        // 同行兄弟（col--16 / col--24）—— QA 模式 setFocus 把红色加到这些上
+        const col8 = group.closest('.cr-container-col--8');
+        if (col8) {
+          let p = col8.previousElementSibling;
+          while (p && p.classList && p.classList.contains('cr-container-col--16')) {
+            RED.forEach((c) => p.classList.remove(c));
+            p = p.previousElementSibling;
+          }
+          let n = col8.nextElementSibling;
+          while (n && n.classList && n.classList.contains('cr-container-col--24')) {
+            RED.forEach((c) => n.classList.remove(c));
+            n = n.nextElementSibling;
+          }
+        }
+      } catch (e) {}
+    }
+
+    function checkAndClear(group) {
+      // 标注模式：靠 getCurrentScore（'0' / '0.5' / '1' / 'none' / null）
+      // 质检模式：靠 QLBQA.getCurrentPass（'通过' / '不通过' / null）
+      let answered = false;
+      try {
+        const s = getCurrentScore(group);
+        if (s !== null && s !== undefined) answered = true;
+      } catch (e) {}
+      if (!answered && global.QLBQA && global.QLBQA.getCurrentPass) {
+        try {
+          if (global.QLBQA.getCurrentPass(group) !== null) answered = true;
+        } catch (e) {}
+      }
+      if (answered) clearRedFor(group);
+    }
+
+    document.addEventListener(
+      'click',
+      (e) => {
+        const t = e.target;
+        if (!t || t.nodeType !== 1) return;
+        // 命中打分相关 label / radio / 输入控件
+        const label = t.closest && t.closest('label.tea-form-check, label[name], input[type="radio"]');
+        if (!label) return;
+        const group = label.closest && label.closest('.cr-radio-group');
+        if (!group) return;
+        // Tea UI 的 checked 同步是异步的，等两次 rAF + 一次 microtask 再判断
+        Promise.resolve().then(() => {
+          if (typeof requestAnimationFrame === 'function') {
+            requestAnimationFrame(() =>
+              requestAnimationFrame(() => checkAndClear(group))
+            );
+          } else {
+            setTimeout(() => checkAndClear(group), 50);
+          }
+        });
+      },
+      true // 捕获阶段，确保不被页面 stopPropagation 吃掉
+    );
+  }
+
   function init() {
     installSubmitInterceptor();
     installSystemToastWatcher();
     installManualShortcut();
+    installAnswerClearWatcher();
   }
 
   global.QLBMissing = {
