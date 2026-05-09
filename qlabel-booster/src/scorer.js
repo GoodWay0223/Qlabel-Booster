@@ -42,6 +42,14 @@
       }
     } catch (e) {}
 
+    // v1.9.56：打分成功后立刻清掉这道题（及附近容器）的"定位未答题"红色脉冲，
+    //         避免用户答完题后红框/红色脉冲一直残留。
+    try {
+      group.classList.remove('qlb-missing-target');
+      const wrap = group.closest('.tea-form-ctrl, .cr-container-row, .tea-form-item');
+      if (wrap) wrap.classList.remove('qlb-missing-target');
+    } catch (e) {}
+
     return { changed: true, prevScore: prev };
   }
 

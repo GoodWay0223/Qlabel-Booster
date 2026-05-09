@@ -196,6 +196,12 @@
     const target = group.querySelector(`label.tea-form-check[name="${pass}"]`);
     if (!target) return { changed: false, prevPass: prev };
     clickLabel(target);
+    // v1.9.56：质检题打分成功后立刻清掉该题及其单元的红色脉冲（"已答完，不再算 missing"）
+    try {
+      const parts = getGroupUnitParts(group);
+      parts.forEach((el) => el.classList.remove('qlb-missing-target'));
+      group.classList.remove('qlb-missing-target');
+    } catch (e) {}
     return { changed: true, prevPass: prev };
   }
 
@@ -543,6 +549,13 @@
     const parts = getGroupUnitParts(group);
     if (opts.markAsMissingTarget) {
       parts.forEach((el) => el.classList.add('qlb-missing-target'));
+      // v1.9.56：6 秒兜底自动清除红色脉冲
+      clearTimeout(setFocus._missingTimer);
+      setFocus._missingTimer = setTimeout(() => {
+        parts.forEach((el) => {
+          try { el.classList.remove('qlb-missing-target'); } catch (e) {}
+        });
+      }, 6000);
     } else {
       parts.forEach((el) => el.classList.add(HL_FOCUS_CLASS));
     }

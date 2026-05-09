@@ -287,6 +287,13 @@
     clearFocus();
     if (markAsMissingTarget) {
       group.classList.add(MISSING_TARGET_CLASS);
+      // v1.9.56：6 秒兜底自动清除红色脉冲
+      // 之前漏掉这一步，导致用户即使答完题、红色脉冲也永久残留
+      // scoreOne 已会主动清，这里只是网兜（用户路过没打分时也能淡出）
+      clearTimeout(setFocus._missingTimer);
+      setFocus._missingTimer = setTimeout(() => {
+        try { group.classList.remove(MISSING_TARGET_CLASS); } catch (e) {}
+      }, 6000);
     } else {
       group.classList.add(FOCUS_CLASS);
     }
