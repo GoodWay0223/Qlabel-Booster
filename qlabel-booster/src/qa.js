@@ -197,10 +197,12 @@
     if (!target) return { changed: false, prevPass: prev };
     clickLabel(target);
     // v1.9.56：质检题打分成功后立刻清掉该题及其单元的红色脉冲（"已答完，不再算 missing"）
+    // v1.9.57：扩展到同时清 missing-highlight（全员红框）和 missing-target（首题强脉冲）
     try {
+      const RED = ['qlb-missing-target', 'qlb-missing-highlight'];
       const parts = getGroupUnitParts(group);
-      parts.forEach((el) => el.classList.remove('qlb-missing-target'));
-      group.classList.remove('qlb-missing-target');
+      parts.forEach((el) => RED.forEach((c) => el.classList.remove(c)));
+      RED.forEach((c) => group.classList.remove(c));
     } catch (e) {}
     return { changed: true, prevPass: prev };
   }

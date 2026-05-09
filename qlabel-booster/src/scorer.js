@@ -44,10 +44,20 @@
 
     // v1.9.56：打分成功后立刻清掉这道题（及附近容器）的"定位未答题"红色脉冲，
     //         避免用户答完题后红框/红色脉冲一直残留。
+    // v1.9.57：扩展到同时清 .qlb-missing-highlight（全员红框）和 .qlb-missing-target（首题强脉冲）
     try {
-      group.classList.remove('qlb-missing-target');
-      const wrap = group.closest('.tea-form-ctrl, .cr-container-row, .tea-form-item');
-      if (wrap) wrap.classList.remove('qlb-missing-target');
+      const RED = ['qlb-missing-target', 'qlb-missing-highlight'];
+      RED.forEach((c) => group.classList.remove(c));
+      const wrap = group.closest('.tea-form-ctrl, .cr-container-row, .tea-form-item, .cr-container-col--8');
+      if (wrap) RED.forEach((c) => wrap.classList.remove(c));
+      // 题目所属"unit parts"（col--16/8/24）也一起清
+      const col8 = group.closest('.cr-container-col--8');
+      if (col8) {
+        let p = col8.previousElementSibling;
+        if (p && p.classList && p.classList.contains('cr-container-col--16')) RED.forEach((c) => p.classList.remove(c));
+        let n = col8.nextElementSibling;
+        if (n && n.classList && n.classList.contains('cr-container-col--24')) RED.forEach((c) => n.classList.remove(c));
+      }
     } catch (e) {}
 
     return { changed: true, prevScore: prev };
