@@ -650,7 +650,7 @@
     } catch (e) { return false; }
   }
 
-  function moveFocus(delta) {
+  function moveFocus(delta, opts = {}) {
     const list = getLinearList();
     if (list.length === 0) return;
     // v1.9.34：若 qaState.focusedGroup 已脱离 DOM（React 重建），
@@ -678,7 +678,9 @@
     }
     if (idx === -1) idx = 0;
     else idx = (idx + delta + list.length) % list.length;
-    setFocus(list[idx]);
+    // v1.9.65：透传 scroll 选项 —— 关闭"维度打分自动跳转"开关时，
+    //         我们仍把焦点移到下一题（让快捷键能继续打分），但不滚动视口（不打扰阅读）
+    setFocus(list[idx], opts);
   }
 
   /** fix 模式下：在当前题目的修正分输入序列里前进 */
@@ -827,9 +829,10 @@
       e.preventDefault();
       if (k === '1') {
         // 通过 → 题目变绿
-        // v1.9.64：是否自动跳下一题受"维度打分后自动跳转"开关控制（默认关闭）
+        // v1.9.64：受"维度打分后自动跳转"开关控制
+        // v1.9.65：关闭时焦点仍移到下一题（方便用快捷键继续打分），但不滚视口（不打扰阅读）
         setPassMany([g], QA_PASS, '单题 通过');
-        if (qaShouldAdvance()) moveFocus(1);
+        moveFocus(1, { scroll: qaShouldAdvance() });
       } else {
         // 不通过 → 进入 fix 模式，聚焦该题第一个修正分
         setPassMany([g], QA_FAIL, '单题 不通过');
@@ -912,8 +915,9 @@
         const inputs = getFixInputsForGroup(group);
         if (inputs.length > 0) setFixFocus(inputs[0], { scroll: true });
       } else {
-        // v1.9.64：通过 → 与按键 1 行为一致：受"维度打分后自动跳转"开关控制
-        if (qaShouldAdvance()) moveFocus(1);
+        // v1.9.64：通过 → 与按键 1 行为一致
+        // v1.9.65：焦点总是移到下一题，开关决定是否滚视口
+        moveFocus(1, { scroll: qaShouldAdvance() });
       }
     }, 60);
   }
