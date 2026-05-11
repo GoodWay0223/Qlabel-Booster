@@ -93,13 +93,14 @@
               <span class="qlb-btn__ico">⤓</span><span class="qlb-btn__lbl">回底</span>
             </button>
           </div>
-          <!-- v1.9.48：维度（类别）胶囊打分后是否自动跳到下一道未答题。仅标注模式有维度胶囊 -->
-          <!-- v1.9.49：默认关闭；文案改为"类别打分后自动跳转" -->
-          <div class="qlb-switch-row qlb-mode-only-label" style="margin-top: 6px;">
-            <label class="qlb-switch" title="标注模式下，点类别（维度）的批量打分胶囊后，是否把焦点自动跳到下一道未答题。默认关闭，开启后焦点会自动前进">
+          <!-- v1.9.48：维度胶囊打分后是否自动跳到下一道未答题。 -->
+          <!-- v1.9.49：默认关闭；文案改为"维度打分后自动跳转" -->
+          <!-- v1.9.62：标注 + 质检模式共用此开关，不再仅限标注模式 -->
+          <div class="qlb-switch-row" style="margin-top: 6px;">
+            <label class="qlb-switch" title="点维度（一行题目）的批量打分胶囊后，是否把焦点自动跳到下一道未答题。默认关闭，开启后焦点会自动前进">
               <input type="checkbox" id="qlb-advance-dim" ${advanceAfterDimension ? 'checked' : ''} />
               <span class="qlb-switch__slider"></span>
-              <span class="qlb-switch__label">类别打分后自动跳转</span>
+              <span class="qlb-switch__label">维度打分后自动跳转</span>
             </label>
           </div>
         </div>
@@ -176,8 +177,8 @@
         const v = !!advDimSwitch.checked;
         savePrefs({ advanceAfterDimension: v });
         global.QLBMissing && global.QLBMissing.toast(v
-          ? '✅ 类别打分后会自动跳到下一未答题'
-          : '⏸ 类别打分后保持当前焦点');
+          ? '✅ 维度打分后会自动跳到下一未答题'
+          : '⏸ 维度打分后保持当前焦点');
       });
     }
 

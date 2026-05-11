@@ -638,6 +638,17 @@
     } catch (e) {}
   }
 
+  /** v1.9.62：质检模式是否在打"通过"后自动跳下一题
+   *  受 toolbar 上的"维度打分后自动跳转"开关控制（与标注模式同一开关）。
+   *  默认关闭：打完保持当前焦点，用户自己决定是否前进。 */
+  function qaShouldAdvance() {
+    try {
+      return global.QLBState && global.QLBState.state &&
+             global.QLBState.state.prefs &&
+             global.QLBState.state.prefs.advanceAfterDimension === true;
+    } catch (e) { return false; }
+  }
+
   function moveFocus(delta) {
     const list = getLinearList();
     if (list.length === 0) return;
@@ -814,9 +825,11 @@
       if (!g) return;
       e.preventDefault();
       if (k === '1') {
-        // 通过 → 题目变绿 → 跳下一题
+        // 通过 → 题目变绿
         setPassMany([g], QA_PASS, '单题 通过');
-        moveFocus(1);
+        // v1.9.62：是否自动跳下一题受 advanceAfterDimension 开关控制（默认关闭）
+        // 与标注模式一致：用户偏好"打完保持当前焦点"，避免视口跳动
+        if (qaShouldAdvance()) moveFocus(1);
       } else {
         // 不通过 → 进入 fix 模式，聚焦该题第一个修正分
         setPassMany([g], QA_FAIL, '单题 不通过');
@@ -899,8 +912,8 @@
         const inputs = getFixInputsForGroup(group);
         if (inputs.length > 0) setFixFocus(inputs[0], { scroll: true });
       } else {
-        // 通过 → 与按键 1 行为一致：跳到下一题
-        moveFocus(1);
+        // 通过 → 与按键 1 行为一致：受 advanceAfterDimension 开关控制是否跳下一题
+        if (qaShouldAdvance()) moveFocus(1);
       }
     }, 60);
   }
