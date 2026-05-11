@@ -147,8 +147,11 @@
   }
 
   /** 一组的"题目最小完整单元"：col--16 (维度) + col--8 (radio) + col--24 (修正分) 的共同父级范围。
-   *  返回一个数组，包含这三个 col 元素，用于添加聚焦/不通过高亮。 */
-  function getGroupUnitParts(group) {
+   *  返回一个数组，包含这三个 col 元素，用于添加聚焦/不通过高亮。
+   *
+   *  v1.9.68：新增 omitFix 选项 —— 为 true 时跳过 col--24（修正分），
+   *           聚焦框只框住"维度名+平均分+通过/不通过"两段，更紧凑视觉更聚焦。 */
+  function getGroupUnitParts(group, opts = {}) {
     if (!group) return [];
     const col8 = group.closest('.cr-container-col--8');
     if (!col8) return [group];
@@ -161,13 +164,15 @@
       }
       prev = prev.previousElementSibling;
     }
-    let next = col8.nextElementSibling;
-    while (next) {
-      if (next.classList && next.classList.contains('cr-container-col--24')) {
-        parts.push(next);
-        break;
+    if (!opts.omitFix) {
+      let next = col8.nextElementSibling;
+      while (next) {
+        if (next.classList && next.classList.contains('cr-container-col--24')) {
+          parts.push(next);
+          break;
+        }
+        next = next.nextElementSibling;
       }
-      next = next.nextElementSibling;
     }
     return parts;
   }
@@ -548,18 +553,22 @@
     qaState.focusMode = 'pass';
     // v1.9.34：data 锚点，跨 React 重渲染稳定定位
     try { group.setAttribute('data-qlb-focus-ref', '1'); } catch (e) {}
-    const parts = getGroupUnitParts(group);
     if (opts.markAsMissingTarget) {
-      parts.forEach((el) => el.classList.add('qlb-missing-target'));
+      // 红色脉冲（定位未答题）保持覆盖整行（含修正分）→ 视觉提醒最强
+      const allParts = getGroupUnitParts(group);
+      allParts.forEach((el) => el.classList.add('qlb-missing-target'));
       // v1.9.56：6 秒兜底自动清除红色脉冲
       clearTimeout(setFocus._missingTimer);
       setFocus._missingTimer = setTimeout(() => {
-        parts.forEach((el) => {
+        allParts.forEach((el) => {
           try { el.classList.remove('qlb-missing-target'); } catch (e) {}
         });
       }, 6000);
     } else {
-      parts.forEach((el) => el.classList.add(HL_FOCUS_CLASS));
+      // v1.9.68：蓝色聚焦框只框 col--16（维度名+平均分）+ col--8（通过/不通过）
+      // 不再框 col--24（修正分），让聚焦框更紧凑、视觉更聚焦
+      const focusParts = getGroupUnitParts(group, { omitFix: true });
+      focusParts.forEach((el) => el.classList.add(HL_FOCUS_CLASS));
     }
     if (opts.scroll !== false) {
       // 用题目最右段（col--24，含修正分）作为整体 → 这样用户能看到"维度名+radio+修正分"完整一题
