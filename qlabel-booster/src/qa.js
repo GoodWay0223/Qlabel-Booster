@@ -347,13 +347,6 @@
         const act = b.dataset.act;
         if (act === 'pass') setPassMany(getQaGroupsInColumn(col), QA_PASS, `视频${idx + 1} 全通过`);
         else if (act === 'fail') setPassMany(getQaGroupsInColumn(col), QA_FAIL, `视频${idx + 1} 全不通过`);
-        // v1.9.63：批量打分后，受"维度打分后自动跳转"开关控制是否聚焦到下一道未答题
-        // 默认关闭：保持当前位置；开启：自动定位到首个未答（与标注模式开关同语义）
-        if (qaShouldAdvance()) {
-          setTimeout(() => {
-            try { focusFirstUnanswered && focusFirstUnanswered(); } catch (e) {}
-          }, 80);
-        }
       });
       col.insertBefore(bar, col.firstChild);
     });
@@ -832,9 +825,11 @@
       if (!g) return;
       e.preventDefault();
       if (k === '1') {
-        // 通过 → 题目变绿 → 跳下一题
+        // 通过 → 题目变绿
         setPassMany([g], QA_PASS, '单题 通过');
-        moveFocus(1);
+        // v1.9.62：是否自动跳下一题受 advanceAfterDimension 开关控制（默认关闭）
+        // 与标注模式一致：用户偏好"打完保持当前焦点"，避免视口跳动
+        if (qaShouldAdvance()) moveFocus(1);
       } else {
         // 不通过 → 进入 fix 模式，聚焦该题第一个修正分
         setPassMany([g], QA_FAIL, '单题 不通过');
@@ -917,8 +912,8 @@
         const inputs = getFixInputsForGroup(group);
         if (inputs.length > 0) setFixFocus(inputs[0], { scroll: true });
       } else {
-        // 通过 → 与按键 1 行为一致：跳到下一题
-        moveFocus(1);
+        // 通过 → 与按键 1 行为一致：受 advanceAfterDimension 开关控制是否跳下一题
+        if (qaShouldAdvance()) moveFocus(1);
       }
     }, 60);
   }
