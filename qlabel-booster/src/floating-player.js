@@ -277,7 +277,15 @@
         </div>
       </div>
       <div class="qlb-player__body"></div>
-      <div class="qlb-player__resizer"></div>
+      <!-- v1.9.66：8 方向缩放句柄（4 角 + 4 边） -->
+      <div class="qlb-player__resizer qlb-player__resizer--n"  data-dir="n"></div>
+      <div class="qlb-player__resizer qlb-player__resizer--s"  data-dir="s"></div>
+      <div class="qlb-player__resizer qlb-player__resizer--e"  data-dir="e"></div>
+      <div class="qlb-player__resizer qlb-player__resizer--w"  data-dir="w"></div>
+      <div class="qlb-player__resizer qlb-player__resizer--ne" data-dir="ne"></div>
+      <div class="qlb-player__resizer qlb-player__resizer--nw" data-dir="nw"></div>
+      <div class="qlb-player__resizer qlb-player__resizer--se" data-dir="se"></div>
+      <div class="qlb-player__resizer qlb-player__resizer--sw" data-dir="sw"></div>
     `;
     document.body.appendChild(wrap);
 
@@ -422,30 +430,97 @@
   }
 
   function bindResize() {
-    const rs = wrap.querySelector('.qlb-player__resizer');
-    let startX, startY, origW, origH, resizing = false;
-    rs.addEventListener('mousedown', (e) => {
-      resizing = true;
-      const rect = wrap.getBoundingClientRect();
-      startX = e.clientX; startY = e.clientY; origW = rect.width; origH = rect.height;
-      wrap.classList.add('qlb-player--resizing');
-      e.preventDefault(); e.stopPropagation();
+    // v1.9.66：支持 8 方向缩放（n/s/e/w/ne/nw/se/sw）
+    // 拖左 / 上侧时除了改 width/height，还要同步改 left/top；右 / 下只改尺寸
+    const handles = wrap.querySelectorAll('.qlb-player__resizer');
+    let startX, startY, origW, origH, origLeft, origTop, dir = '', resizing = false;
+    const MIN_W = 200, MIN_H = 140;
+
+    handles.forEach((h) => {
+      h.addEventListener('mousedown', (e) => {
+        resizing = true;
+        dir = h.dataset.dir || 'se';
+        const rect = wrap.getBoundingClientRect();
+        startX = e.clientX;
+        startY = e.clientY;
+        origW = rect.width;
+        origH = rect.height;
+        origLeft = rect.left;
+        origTop = rect.top;
+        wrap.classList.add('qlb-player--resizing');
+        e.preventDefault();
+        e.stopPropagation();
+      });
     });
+
     window.addEventListener('mousemove', (e) => {
       if (!resizing) return;
-      // 尺寸范围：宽 200~视口宽、高 140~视口高
       const vw = window.innerWidth, vh = window.innerHeight;
-      const w = Math.min(vw - 20, Math.max(200, origW + (e.clientX - startX)));
-      const h = Math.min(vh - 20, Math.max(140, origH + (e.clientY - startY)));
-      wrap.style.width = w + 'px';
-      wrap.style.height = h + 'px';
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+
+      let newW = origW, newH = origH, newLeft = origLeft, newTop = origTop;
+
+      // 横向：东（右）拉变宽，西（左）拉变宽且 left 反向同步
+      if (dir.indexOf('e') !== -1) {
+        newW = origW + dx;
+      } else if (dir.indexOf('w') !== -1) {
+        newW = origW - dx;
+        newLeft = origLeft + dx;
+      }
+      // 纵向：南（下）拉变高，北（上）拉变高且 top 反向同步
+      if (dir.indexOf('s') !== -1) {
+        newH = origH + dy;
+      } else if (dir.indexOf('n') !== -1) {
+        newH = origH - dy;
+        newTop = origTop + dy;
+      }
+
+      // 应用最小宽高约束（达到下限时停止往该方向移动 left/top）
+      if (newW < MIN_W) {
+        if (dir.indexOf('w') !== -1) newLeft = origLeft + (origW - MIN_W);
+        newW = MIN_W;
+      }
+      if (newH < MIN_H) {
+        if (dir.indexOf('n') !== -1) newTop = origTop + (origH - MIN_H);
+        newH = MIN_H;
+      }
+      // 视口约束：左/上不能拖到屏幕外，右/下不能超视口
+      if (newLeft < 0) {
+        newW = newW + newLeft; // 左过界，缩窄宽度
+        newLeft = 0;
+      }
+      if (newTop < 0) {
+        newH = newH + newTop;
+        newTop = 0;
+      }
+      if (newLeft + newW > vw - 4) {
+        newW = vw - 4 - newLeft;
+      }
+      if (newTop + newH > vh - 4) {
+        newH = vh - 4 - newTop;
+      }
+
+      wrap.style.width = newW + 'px';
+      wrap.style.height = newH + 'px';
+      // 拖了左/上时位置也要更新；右/下时位置不变（继续用原 left/top）
+      if (dir.indexOf('w') !== -1) wrap.style.left = newLeft + 'px';
+      if (dir.indexOf('n') !== -1) wrap.style.top = newTop + 'px';
     });
+
     window.addEventListener('mouseup', () => {
       if (!resizing) return;
       resizing = false;
+      dir = '';
       wrap.classList.remove('qlb-player--resizing');
       const r = wrap.getBoundingClientRect();
-      savePrefs({ playerW: Math.round(r.width), playerH: Math.round(r.height) });
+      // 持久化新尺寸 + 位置（拖左/上时位置会变，与 bindDrag 同一 key：playerX / playerY）
+      savePrefs({
+        playerW: Math.round(r.width),
+        playerH: Math.round(r.height),
+        playerX: Math.round(r.left),
+        playerY: Math.round(r.top)
+      });
     });
   }
 

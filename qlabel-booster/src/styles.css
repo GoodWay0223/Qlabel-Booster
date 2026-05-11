@@ -621,21 +621,34 @@ body {
   padding: 16px;
   text-align: center;
 }
+/* v1.9.66：8 方向缩放句柄（4 边 + 4 角）。
+   - 4 边为透明窄条，鼠标悬停时蓝色高亮
+   - 4 角为方块，右下角额外保留斜线视觉指示（让用户一眼看到这是可缩放的） */
 .qlb-player__resizer {
   position: absolute;
-  right: 0;
+  /* 浮在视频控件之上，避免被原生 controls 挡住 */
+  z-index: 3;
+  background: transparent;
+  transition: background 0.15s;
+}
+.qlb-player__resizer--n  { top: 0;     left: 8px;  right: 8px;  height: 6px;  cursor: ns-resize; }
+.qlb-player__resizer--s  { bottom: 0;  left: 8px;  right: 8px;  height: 6px;  cursor: ns-resize; }
+.qlb-player__resizer--w  { left: 0;    top: 8px;   bottom: 8px; width: 6px;   cursor: ew-resize; }
+.qlb-player__resizer--e  { right: 0;   top: 8px;   bottom: 8px; width: 6px;   cursor: ew-resize; }
+.qlb-player__resizer--nw { top: 0;     left: 0;    width: 12px; height: 12px; cursor: nwse-resize; }
+.qlb-player__resizer--ne { top: 0;     right: 0;   width: 12px; height: 12px; cursor: nesw-resize; }
+.qlb-player__resizer--sw { bottom: 0;  left: 0;    width: 12px; height: 12px; cursor: nesw-resize; }
+.qlb-player__resizer--se {
   bottom: 0;
+  right: 0;
   width: 22px;
   height: 22px;
   cursor: nwse-resize;
-  /* 浮在视频控件之上，避免被原生 controls 挡住 */
-  z-index: 3;
   background:
     linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.55) 50%);
   border-bottom-right-radius: 10px;
-  transition: background 0.15s;
 }
-.qlb-player__resizer::after {
+.qlb-player__resizer--se::after {
   /* 右下角三道斜线，视觉提示更明显 */
   content: "";
   position: absolute;
@@ -649,7 +662,11 @@ body {
     linear-gradient(135deg, transparent 80%, rgba(255,255,255,0.9) 80%, rgba(255,255,255,0.9) 90%, transparent 90%);
   pointer-events: none;
 }
-.qlb-player__resizer:hover {
+/* 边/角悬停反馈 */
+.qlb-player__resizer:not(.qlb-player__resizer--se):hover {
+  background: rgba(59,130,246,0.28);
+}
+.qlb-player__resizer--se:hover {
   background:
     linear-gradient(135deg, transparent 50%, rgba(59,130,246,0.85) 50%);
 }
