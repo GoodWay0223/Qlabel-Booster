@@ -267,7 +267,13 @@
     });
   }
 
-  /** 用户用方向键聚焦新题 → 把对应视频居中（这种场景需要"咔哒一下"卡到列中央） */
+  /** 用户用方向键聚焦新题 → 把对应视频居中（这种场景需要"咔哒一下"卡到列中央）
+   *
+   *  v1.9.67：抑制不必要的横向回弹。
+   *    场景：用户已手动横滑到合适位置（视频列和题目列对齐），此时点 通过/不通过 触发自动聚焦，
+   *         旧逻辑会再"咔哒一下"把列卡到正中央 → 用户原本满意的位置被打乱。
+   *    新策略：焦点题对应的视频列**已完全可见**（在视频轨道视口内）→ 视为合理对齐 → 不动横滚。
+   *           只有视频列被部分截断或完全不可见时才主动对齐。 */
   function syncByFocusedGroup() {
     if (state.prefs.syncScroll === false) return;
     const g = state.focusedGroup;
@@ -275,6 +281,24 @@
     for (let i = 0; i < ratingCols.length; i++) {
       if (ratingCols[i].contains(g)) {
         if (i === lastAlignedIdx) return;
+        // v1.9.67：检查"对应视频列"是否已经在视频轨道视口内完全可见
+        // 是 → 用户已手动对齐，保持现状不打扰
+        if (ratingVideos[i] && videoTrack) {
+          try {
+            const videoCol = ratingVideos[i].closest('.cr-container-col--8') || ratingVideos[i];
+            const trackRect = videoTrack.getBoundingClientRect();
+            const colRect = videoCol.getBoundingClientRect();
+            // 完全在视口内：左右边都在 trackRect 范围内（留 4px 容差）
+            const fullyVisible =
+              colRect.left >= trackRect.left - 4 &&
+              colRect.right <= trackRect.right + 4;
+            if (fullyVisible) {
+              // 视为合理对齐，仅更新 lastAlignedIdx 但不滚动
+              lastAlignedIdx = i;
+              return;
+            }
+          } catch (e) { /* fallback：继续走原对齐逻辑 */ }
+        }
         lastAlignedIdx = i;
         alignVideoToIndex(i);
         alignQuestionToIndex(i);
