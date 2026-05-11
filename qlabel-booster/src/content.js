@@ -70,13 +70,16 @@
     const n = getAllQuestionGroups().length;
     if (n === 0) return;
 
-    // v1.9.59：在初始化重型模块前，先确认 mode 检测能识别
-    // 之前的 bug：DOM 已经长出 66 道题，但 detect() 因 selector 过严返回 'unknown'，
-    // 导致 switchMode('unknown') 既不 init 标注也不 init 质检，工具栏哑火
-    const detectedMode = window.QLBMode ? window.QLBMode.detect() : 'label';
+    // v1.9.60：回退 v1.9.59 的过严守卫
+    // v1.9.59 在 mode === 'unknown' 时直接 return，导致："iframe 里有题但 mode 检测因
+    // 跨域读不到 top.body 文本而返回 unknown" 这种正常情况下工具栏永远装不上。
+    // 现在策略：题目数 ≥ 1 就装工具栏，mode 检测不出来就先按 label 兜底，
+    // 后续 tick 里 detect() 会自动纠正模式。
+    let detectedMode = window.QLBMode ? window.QLBMode.detect() : 'label';
     if (detectedMode === 'unknown') {
-      // 暂不 fullBoot，等下次 tick 重试（DOM 渐进渲染时常见）
-      return;
+      // 兜底为标注模式（数量更多，且首次启动 UI 体验更佳）
+      // tick 内每秒会重 detect，识别成功后 switchMode 会切到正确模式
+      detectedMode = 'label';
     }
 
     // 工具栏：只在题目所在的 frame 里出现

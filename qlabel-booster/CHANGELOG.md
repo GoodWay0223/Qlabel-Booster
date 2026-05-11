@@ -7,6 +7,22 @@
 
 ---
 
+## [1.9.60] - 2026-05-11
+
+### 修复
+- **回退 v1.9.59 的过严守卫，恢复工具栏在子 iframe 的初始化**：
+  - v1.9.59 加的"mode 是 unknown 就不 fullBoot"守卫在子 iframe 场景误伤：
+    - QLabel 把题目装在 `combinator/iframe?token=...` 子 iframe 里
+    - 子 iframe 跨域读不到 top window 的标题文本 → `detectFromTopTitle` fallback 失效 → 返回 unknown
+    - 守卫拦下了 fullBoot → 工具栏永远不出
+  - 改回更稳的策略：**有题目就装工具栏**，mode 暂时识别不出就按 `label` 兜底，tick 内每秒会重 detect 自动纠正
+
+### 表现
+- `qlabel.qq.com/teamspace/.../assignment/...?filterType=5` 等带 combinator iframe 的页面恢复正常
+- 工具栏出现 + 快捷键可用 + 提交后红框定位都正常
+
+---
+
 ## [1.9.59] - 2026-05-11
 
 ### 修复
