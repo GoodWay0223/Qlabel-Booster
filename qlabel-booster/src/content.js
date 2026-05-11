@@ -28,7 +28,15 @@
   let activeMode = null;
 
   function hasQuestions() {
-    return getAllQuestionGroups().length > 0;
+    // v1.9.61：之前只看 getAllQuestionGroups（仅标注题），导致质检模式 iframe
+    // 因为题目都是"通过/不通过"被过滤，hasQuestions=false → fullBoot 永不启动 → 工具栏永远不出
+    // 现在：标注题（数字分值）或 质检题（通过/不通过）任一存在都算"有题"
+    if (getAllQuestionGroups().length > 0) return true;
+    // 质检题特征
+    return !!(
+      document.querySelector('label[name="通过"]') ||
+      document.querySelector('label[name="不通过"]')
+    );
   }
 
   /** 切换模式：teardown 旧模式 → init 新模式 */
@@ -67,8 +75,9 @@
 
   function fullBoot() {
     if (fullBooted) return;
-    const n = getAllQuestionGroups().length;
-    if (n === 0) return;
+    // v1.9.61：用宽松版 hasQuestions（标注题 + 质检题）替代旧的只算标注题的 getAllQuestionGroups
+    if (!hasQuestions()) return;
+    const n = getAllQuestionGroups().length || document.querySelectorAll('label[name="通过"]').length;
 
     // v1.9.60：回退 v1.9.59 的过严守卫
     // v1.9.59 在 mode === 'unknown' 时直接 return，导致："iframe 里有题但 mode 检测因
