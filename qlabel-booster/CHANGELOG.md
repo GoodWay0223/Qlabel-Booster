@@ -7,6 +7,22 @@
 
 ---
 
+## [1.9.59] - 2026-05-11
+
+### 修复
+- **修复"工具栏不显示、模式 unknown"导致整个插件不工作**：
+  - 现象：v1.9.58 在某些 QLabel 页面（特别是 `qlabel.qq.com/combinator/iframe?token=...` 这类嵌入式 URL）打开后，工具栏消失，所有功能失效
+  - 真因 1：`mode.js` 的检测 selector 过严，要求 `label.tea-form-check[name="通过"]`；QLabel 后端调整 DOM 后某些页面这个 class 已不存在，导致 `detect()` 返回 `unknown`
+  - 真因 2：`content.js` 的 `fullBoot()` 拿到 `unknown` 仍然把 `fullBooted` 锁死，导致后续 tick 永远无法重试
+  - 修复 1：mode 检测放宽，去掉 `.tea-form-check` class 限定，只用 `[name="通过/不通过/0/0.5/1/none"]` 属性匹配（更稳）
+  - 修复 2：fullBoot 在 mode 仍 unknown 时直接返回，下次 tick 再试，直到 DOM 完全渲染
+
+### 表现
+- 在 `qlabel.qq.com/combinator/iframe?...` 等以前打不开工具栏的 URL 上正常出工具栏
+- 标注 / 质检模式自动识别更稳，不再因为 DOM 渐进渲染错过初始化时机
+
+---
+
 ## [1.9.58] - 2026-05-09
 
 ### 修复

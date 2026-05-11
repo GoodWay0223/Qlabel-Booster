@@ -70,6 +70,15 @@
     const n = getAllQuestionGroups().length;
     if (n === 0) return;
 
+    // v1.9.59：在初始化重型模块前，先确认 mode 检测能识别
+    // 之前的 bug：DOM 已经长出 66 道题，但 detect() 因 selector 过严返回 'unknown'，
+    // 导致 switchMode('unknown') 既不 init 标注也不 init 质检，工具栏哑火
+    const detectedMode = window.QLBMode ? window.QLBMode.detect() : 'label';
+    if (detectedMode === 'unknown') {
+      // 暂不 fullBoot，等下次 tick 重试（DOM 渐进渲染时常见）
+      return;
+    }
+
     // 工具栏：只在题目所在的 frame 里出现
     try {
       window.QLBToolbar.init();
@@ -91,10 +100,9 @@
     window.__QLB_BOOTED__ = true;
 
     // 根据当前页面模式启动对应专属模块
-    const mode = window.QLBMode ? window.QLBMode.detect() : 'label';
-    switchMode(mode);
+    switchMode(detectedMode);
 
-    log(`完整初始化完成（题目 ${n}），模式：${mode}，快捷键已启用 ✅`);
+    log(`完整初始化完成（题目 ${n}），模式：${detectedMode}，快捷键已启用 ✅`);
   }
 
   function tick() {

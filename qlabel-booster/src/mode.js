@@ -21,18 +21,32 @@
   let _current = 'unknown';
   const listeners = new Set();
 
-  /** 在当前 document 里检测特征 */
+  /** 在当前 document 里检测特征
+   *
+   *  v1.9.59：放宽 selector：从 `label.tea-form-check[name="X"]` →
+   *  `label[name="X"]`（不再要求特定 class）
+   *  原因：QLabel 后端调整 DOM 后某些页面的 label class 已不是 tea-form-check，
+   *  但 [name="通过"] / [name="不通过"] / [name="0"] 等业务属性始终保留。
+   *  保留 .tea-form-check 路径作为优先匹配（可能更准），失败再退到属性匹配。
+   */
   function detectInDoc(doc) {
     // 1) 质检特征：是否通过/不通过 radio
-    const passLabel = doc.querySelector('label.tea-form-check[name="通过"]');
-    const failLabel = doc.querySelector('label.tea-form-check[name="不通过"]');
-    if (passLabel || failLabel) return 'qa';
+    if (
+      doc.querySelector('label.tea-form-check[name="通过"]') ||
+      doc.querySelector('label.tea-form-check[name="不通过"]') ||
+      doc.querySelector('label[name="通过"]') ||
+      doc.querySelector('label[name="不通过"]')
+    ) return 'qa';
 
     // 2) 标注特征：数字分值 radio
-    const scoreLabel = doc.querySelector(
-      'label.tea-form-check[name="0"], label.tea-form-check[name="0.5"], label.tea-form-check[name="1"], label.tea-form-check[name="none"]'
-    );
-    if (scoreLabel) return 'label';
+    if (
+      doc.querySelector(
+        'label.tea-form-check[name="0"], label.tea-form-check[name="0.5"], label.tea-form-check[name="1"], label.tea-form-check[name="none"]'
+      ) ||
+      doc.querySelector(
+        'label[name="0"], label[name="0.5"], label[name="1"], label[name="none"]'
+      )
+    ) return 'label';
 
     return null;
   }
