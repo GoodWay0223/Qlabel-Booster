@@ -1254,3 +1254,64 @@ body {
     animation: none !important;
   }
 }
+
+/* ===== 草稿面板（v1.9.69） ===== */
+.qlb-modal__panel--wide { max-width: 720px !important; }
+.qlb-draft-intro {
+  font-size: 12px;
+  color: #6b7280;
+  background: #f9fafb;
+  border-left: 3px solid #3b82f6;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin: 0 0 14px 0;
+  line-height: 1.6;
+}
+.qlb-draft-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+.qlb-draft-card--current { background: #f0f9ff; border-color: #bae6fd; }
+.qlb-draft-card--empty   { background: #f9fafb; color: #6b7280; text-align: center; padding: 18px; }
+.qlb-draft-card__title   { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+.qlb-draft-card__meta    { font-size: 12px; color: #4b5563; margin-bottom: 10px; }
+.qlb-draft-card__meta b  { color: #111827; }
+.qlb-draft-card__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.qlb-draft-card--empty .qlb-draft-card__meta { margin-bottom: 0; }
+
+.qlb-draft-sep {
+  text-align: center;
+  color: #9ca3af;
+  font-size: 12px;
+  margin: 20px 0 10px;
+  letter-spacing: 0.1em;
+}
+.qlb-draft-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.qlb-draft-table th, .qlb-draft-table td {
+  border-bottom: 1px solid #f3f4f6;
+  padding: 6px 8px;
+  text-align: left;
+  vertical-align: middle;
+}
+.qlb-draft-table th { color: #6b7280; font-weight: 500; background: #f9fafb; }
+.qlb-draft-url {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: monospace;
+  color: #374151;
+}
+.qlb-draft-empty {
+  text-align: center;
+  color: #9ca3af;
+  padding: 16px;
+  font-size: 12px;
+}
+.qlb-btn--sm { padding: 2px 8px; font-size: 11px; }

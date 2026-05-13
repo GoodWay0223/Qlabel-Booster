@@ -107,6 +107,11 @@
     try {
       window.QLBWheelPan && window.QLBWheelPan.init();
     } catch (e) { warn('WheelPan init 失败', e); }
+    // v1.9.69：草稿自动保存 —— 不依赖 QLabel 后端，每次打分本地持久化，
+    //          用户刷新/关标签/视频加载失败后可恢复
+    try {
+      window.QLBDraft && window.QLBDraft.init();
+    } catch (e) { warn('Draft init 失败', e); }
 
     fullBooted = true;
     window.__QLB_BOOTED__ = true;

@@ -13,6 +13,7 @@
   const SCORES = ['0', '0.5', '1', 'none'];
   const TOOLBAR_ID = 'qlb-toolbar';
   const HELP_ID = 'qlb-help-modal';
+  const DRAFT_ID = 'qlb-draft-modal';
 
   let progressEl = null;
 
@@ -37,6 +38,7 @@
           <span class="qlb-mode-chip" data-mode-chip>${isQa ? '质检' : '标注'}</span>
         </span>
         <div class="qlb-toolbar__head-actions">
+          <button class="qlb-icon-btn" data-action="draft" title="草稿：查看/恢复本地自动保存的答题" aria-label="草稿">📋</button>
           <button class="qlb-icon-btn" data-action="help" title="帮助（快捷键说明）" aria-label="帮助">?</button>
           <button class="qlb-icon-btn qlb-icon-btn--collapse" data-action="toggle-collapse" title="折叠/展开" aria-label="折叠/展开">
             <span class="qlb-collapse-ico"></span>
@@ -246,6 +248,8 @@
         global.QLBMissing && global.QLBMissing.toast && global.QLBMissing.toast('⇊ 已到底部');
       } else if (act === 'help') {
         toggleHelp();
+      } else if (act === 'draft') {
+        toggleDraftPanel();
       }
     });
   }
@@ -351,6 +355,141 @@
     head.addEventListener('mousedown', onMouseDown);
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
+  }
+
+  // ========== 草稿面板（v1.9.69） ==========
+  function toggleDraftPanel() {
+    const exist = document.getElementById(DRAFT_ID);
+    if (exist) { exist.remove(); return; }
+
+    const D = global.QLBDraft;
+    if (!D) {
+      global.QLBMissing && global.QLBMissing.toast && global.QLBMissing.toast('❌ 草稿模块未加载');
+      return;
+    }
+
+    // 当前任务的草稿
+    const cur = D.load();
+    // 所有任务草稿
+    const all = D.listAll();
+
+    const fmtTime = (ts) => {
+      const d = new Date(ts);
+      const pad = (n) => (n < 10 ? '0' + n : n);
+      return `${d.getMonth() + 1}月${d.getDate()}日 ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    };
+
+    const curHtml = cur
+      ? `
+        <div class="qlb-draft-card qlb-draft-card--current">
+          <div class="qlb-draft-card__title">📍 当前任务的草稿</div>
+          <div class="qlb-draft-card__meta">
+            模式：<b>${cur.mode === 'qa' ? '质检' : '标注'}</b> · 已保存 <b>${cur.answers.length}</b> 题 · 更新于 <b>${fmtTime(cur.updatedAt)}</b>
+          </div>
+          <div class="qlb-draft-card__actions">
+            <button class="qlb-btn qlb-btn--primary" data-act="restore-current">♻️ 一键恢复到当前页</button>
+            <button class="qlb-btn" data-act="copy-current">📋 复制 JSON</button>
+            <button class="qlb-btn qlb-btn--danger" data-act="clear-current">🗑 清除此草稿</button>
+          </div>
+        </div>`
+      : `
+        <div class="qlb-draft-card qlb-draft-card--empty">
+          <div class="qlb-draft-card__title">📍 当前任务暂无草稿</div>
+          <div class="qlb-draft-card__meta">打任何一分后会自动保存到本地。</div>
+        </div>`;
+
+    // 列出其它草稿（排除当前任务）
+    const curKey = D.getStorageKey(D.getTaskKey());
+    const others = all.filter((x) => x.key !== curKey);
+    const othersHtml = others.length === 0
+      ? '<div class="qlb-draft-empty">（没有其它任务的草稿）</div>'
+      : `
+        <table class="qlb-draft-table">
+          <thead><tr><th>任务</th><th>模式</th><th>题数</th><th>时间</th><th></th></tr></thead>
+          <tbody>
+            ${others.map((o, i) => `
+              <tr data-key="${o.key.replace(/"/g, '&quot;')}">
+                <td class="qlb-draft-url" title="${(o.data.url || '').replace(/"/g, '&quot;')}">${(o.data.url || '').slice(-50)}</td>
+                <td>${o.data.mode === 'qa' ? '质检' : '标注'}</td>
+                <td>${o.data.answers ? o.data.answers.length : 0}</td>
+                <td>${fmtTime(o.data.updatedAt)}</td>
+                <td>
+                  <button class="qlb-btn qlb-btn--sm" data-act="copy-other" data-idx="${i}">复制</button>
+                  <button class="qlb-btn qlb-btn--sm qlb-btn--danger" data-act="clear-other" data-idx="${i}">删除</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>`;
+
+    const modal = document.createElement('div');
+    modal.id = DRAFT_ID;
+    modal.className = 'qlb-modal';
+    modal.innerHTML = `
+      <div class="qlb-modal__mask" data-act="close"></div>
+      <div class="qlb-modal__panel qlb-modal__panel--wide">
+        <div class="qlb-modal__head">
+          <span>📋 草稿（本地自动保存）</span>
+          <button class="qlb-icon-btn" data-act="close" title="关闭" aria-label="关闭">✕</button>
+        </div>
+        <div class="qlb-modal__body">
+          <p class="qlb-draft-intro">
+            每次打分自动存到本地（localStorage），刷新/关标签后可恢复。<b>不会上传任何数据</b>。
+            草稿 <b>7 天</b> 自动清理。提交成功后建议手动点"清除此草稿"。
+          </p>
+          ${curHtml}
+          <div class="qlb-draft-sep">— 其它任务的草稿 —</div>
+          ${othersHtml}
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    modal.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-act]');
+      if (!btn) return;
+      const act = btn.dataset.act;
+      if (act === 'close') { modal.remove(); return; }
+      if (act === 'restore-current') {
+        if (!confirm('将把草稿里的已打分重放到当前页面。已有分值的题目会跳过，不会被覆盖。继续？')) return;
+        try {
+          const r = D.restoreToPage(cur);
+          global.QLBMissing && global.QLBMissing.toast &&
+            global.QLBMissing.toast(`✅ 已恢复 ${r.restored} 题（跳过 ${r.skipped} 题已答、${r.mismatched} 题匹配不上）`, 4000);
+        } catch (err) {
+          global.QLBMissing && global.QLBMissing.toast && global.QLBMissing.toast('❌ 恢复失败：' + err.message, 3000);
+        }
+        modal.remove();
+      } else if (act === 'copy-current') {
+        try {
+          navigator.clipboard.writeText(JSON.stringify(cur, null, 2));
+          global.QLBMissing && global.QLBMissing.toast && global.QLBMissing.toast('✅ 草稿 JSON 已复制到剪贴板');
+        } catch (err) {
+          global.QLBMissing && global.QLBMissing.toast && global.QLBMissing.toast('❌ 复制失败（可能需手动允许剪贴板权限）', 3000);
+        }
+      } else if (act === 'clear-current') {
+        if (!confirm('确定清除当前任务的本地草稿？（不影响页面上已打的分）')) return;
+        D.clear();
+        modal.remove();
+        global.QLBMissing && global.QLBMissing.toast && global.QLBMissing.toast('🗑 已清除当前任务草稿');
+      } else if (act === 'copy-other') {
+        const o = others[parseInt(btn.dataset.idx, 10)];
+        if (o) {
+          try {
+            navigator.clipboard.writeText(JSON.stringify(o.data, null, 2));
+            global.QLBMissing && global.QLBMissing.toast && global.QLBMissing.toast('✅ JSON 已复制');
+          } catch (err) {}
+        }
+      } else if (act === 'clear-other') {
+        const o = others[parseInt(btn.dataset.idx, 10)];
+        if (o && confirm(`确定删除草稿 "${(o.data.url || '').slice(-40)}"？`)) {
+          try { localStorage.removeItem(o.key); } catch (err) {}
+          // 删除后刷新面板
+          modal.remove();
+          toggleDraftPanel();
+        }
+      }
+    });
   }
 
   // ========== 快捷键帮助弹窗 ==========

@@ -7,7 +7,7 @@
 #
 # 工作原理：
 #   1. 读取 ../qlabel-booster/src/*.js 与 styles.css
-#   2. 按依赖顺序把 13 个 JS 合并成单文件
+#   2. 按依赖顺序把 14 个 JS 合并成单文件
 #   3. 把 styles.css 转为 GM_addStyle('...') 调用
 #   4. 加上 Tampermonkey 头部元数据 + GM API shim
 #   5. 输出到 dist/qlabel-booster.user.js
@@ -105,7 +105,7 @@ echo "🔧 [3/6] 注入 GM API shim..."
 # ========================================================================
 # 4. 按依赖顺序合并 13 个 JS
 # ========================================================================
-echo "🧩 [4/6] 合并 13 个模块..."
+echo "🧩 [4/6] 合并 14 个模块..."
 # 依赖顺序必须与 manifest.json 的 content_scripts.js 一致
 MODULES=(
   "selectors.js"
@@ -119,6 +119,7 @@ MODULES=(
   "scroll-sync.js"
   "wheel-pan.js"
   "qa.js"
+  "draft.js"
   "toolbar.js"
   "content.js"
 )

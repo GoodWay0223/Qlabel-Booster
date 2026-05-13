@@ -1103,8 +1103,13 @@
     focusFirstUnanswered,
     setFixValue,
     refresh: scheduleRefresh,
+    // v1.9.69：供 draft.js 使用的只读接口
+    getCurrentPass,
     /** 内部用：让 missing.js 在质检模式下可以聚焦 QA 题目组 */
     _setFocus: setFocus,
+    _getDimensionTitleEl: getDimensionTitleEl,
+    _getFixInputsForGroup: getFixInputsForGroup,
+    _setReactInputValue: setReactInputValue,
     debug() {
       const { pass, fail, none, total } = countProgress();
       console.group('%c[QLB:QA]', 'color:#a855f7;font-weight:bold');
