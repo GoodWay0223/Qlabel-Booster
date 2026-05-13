@@ -32,3 +32,4 @@ qlabel-booster/*.bak
 # ===== CodeBuddy 工作区状态（如果有） =====
 .codebuddy/
 *.cb-state
+movie-annotation-tools/
