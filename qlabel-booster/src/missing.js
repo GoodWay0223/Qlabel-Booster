@@ -120,14 +120,29 @@
     return { stats, colGroups };
   }
 
-  /** 高亮所有未答题 */
+  /** 高亮所有未答题
+   *  v1.9.71：收紧红框范围——只框选未答的"那一题"本身，不再向上扩到 .tea-form-item / .cr-container-row
+   *   - .cr-radio-group：直接用自己（一组评分按钮）
+   *   - textarea / input / select：用元素本体；至多扩到 .tea-form-ctrl（紧贴的控件 wrapper）
+   *   - 其它情况：尽量保留原元素，不再无脑 closest('.tea-form-item')
+   */
   function highlightAll(missing) {
     clearHighlight();
     for (const m of missing) {
       const g = m && m.nodeType ? m : (m && m.el);
       if (!g) continue;
-      // 对非 .cr-radio-group 的字段，高亮其最近的题目容器，以便用户看清
-      const target = g.closest('.cr-radio-group, .tea-form-ctrl, .cr-container-row, .tea-form-item') || g;
+      let target = g;
+      const tag = (g.tagName || '').toLowerCase();
+      if (g.classList && g.classList.contains('cr-radio-group')) {
+        // 评分组本身就是一题，直接框它
+        target = g;
+      } else if (tag === 'textarea' || tag === 'input' || tag === 'select') {
+        // 控件本体最贴合；如果太小不易看清，可降级到紧贴的 .tea-form-ctrl
+        target = g.closest('.tea-form-ctrl') || g;
+      } else {
+        // 已经是块级元素就保留；否则最多扩到一个最近的控件 wrapper
+        target = g.closest('.cr-radio-group, .tea-form-ctrl') || g;
+      }
       target.classList.add(HL_CLASS);
     }
   }

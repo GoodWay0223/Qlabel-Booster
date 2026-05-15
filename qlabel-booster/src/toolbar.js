@@ -123,7 +123,7 @@
             <label class="qlb-switch" title="开启后所有视频自动循环播放">
               <input type="checkbox" id="qlb-autoloop" ${autoLoop ? 'checked' : ''} />
               <span class="qlb-switch__slider"></span>
-              <span class="qlb-switch__label">自动循环</span>
+              <span class="qlb-switch__label">播放循环</span>
             </label>
             <label class="qlb-switch" title="滚动视频行时，题目列表自动同步滚动到对应位置">
               <input type="checkbox" id="qlb-syncscroll" ${syncScroll ? 'checked' : ''} />
@@ -166,7 +166,7 @@
         if (global.QLBPlayer && global.QLBPlayer.setAutoLoop) {
           global.QLBPlayer.setAutoLoop(v);
         }
-        global.QLBMissing && global.QLBMissing.toast(v ? '✅ 视频自动循环已开启' : '⏸ 视频自动循环已关闭');
+        global.QLBMissing && global.QLBMissing.toast(v ? '✅ 播放循环已开启' : '⏸ 播放循环已关闭');
       });
     }
 
