@@ -1,12 +1,18 @@
 name: Build & Release
 
 # 触发条件：
-#   1) push 到 main：检查版本号是否变化，变了就发 Release
+#   1) push tag v*：发 Release（推荐路径，避免和 main push 竞态）
 #   2) 手动在 Actions 页面点 "Run workflow" 也能跑一次（用于补救/重发）
 on:
   push:
-    branches: [main]
+    tags:
+      - 'v*'
   workflow_dispatch:
+    inputs:
+      version:
+        description: '要发布的版本号（不带 v 前缀，例如 1.9.72）。留空则用 manifest.json 当前版本。'
+        required: false
+        default: ''
 
 permissions:
   contents: write   # 允许 GITHUB_TOKEN 创建 release / 推 tag
@@ -19,29 +25,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # 拉全部历史，便于打 tag
+          fetch-depth: 0   # 拉全部历史，便于读 changelog
 
-      - name: Read version from manifest.json
+      - name: Resolve version
         id: version
         run: |
-          VERSION=$(grep '"version"' qlabel-booster/manifest.json | head -1 | sed -E 's/.*"version": *"([^"]+)".*/\1/')
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "📦 Version: v$VERSION"
-
-      - name: Check if tag already exists
-        id: check_tag
-        run: |
-          TAG="v${{ steps.version.outputs.version }}"
-          if git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "tag_exists=true" >> $GITHUB_OUTPUT
-            echo "⚠️ Tag $TAG already exists, will skip release"
+          # 优先用手动输入；否则从 tag 取；否则从 manifest 取
+          INPUT="${{ github.event.inputs.version }}"
+          if [ -n "$INPUT" ]; then
+            VERSION="$INPUT"
+            echo "📌 Using manual input version: v$VERSION"
+          elif [ "${{ github.ref_type }}" = "tag" ]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+            echo "🏷  Using tag version: v$VERSION"
           else
-            echo "tag_exists=false" >> $GITHUB_OUTPUT
-            echo "✅ Tag $TAG is new, will create release"
+            VERSION=$(grep '"version"' qlabel-booster/manifest.json | head -1 | sed -E 's/.*"version": *"([^"]+)".*/\1/')
+            echo "📦 Using manifest version: v$VERSION"
           fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Build userscript
-        if: steps.check_tag.outputs.tag_exists == 'false'
         run: |
           cd qlabel-booster-userscript
           chmod +x build-userscript.sh
@@ -49,7 +52,6 @@ jobs:
           ls -la dist/
 
       - name: Build extension zip
-        if: steps.check_tag.outputs.tag_exists == 'false'
         run: |
           cd qlabel-booster
           chmod +x build.sh
@@ -57,7 +59,6 @@ jobs:
           ls -la dist/
 
       - name: Extract changelog for this version
-        if: steps.check_tag.outputs.tag_exists == 'false'
         id: changelog
         run: |
           VERSION="${{ steps.version.outputs.version }}"
@@ -75,7 +76,6 @@ jobs:
           echo "📝 Changelog extracted ($(wc -l < /tmp/release_notes.md) lines)"
 
       - name: Create Release
-        if: steps.check_tag.outputs.tag_exists == 'false'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.version }}
@@ -83,6 +83,8 @@ jobs:
           body_path: /tmp/release_notes.md
           draft: false
           prerelease: false
+          # 允许同名 release 已存在时覆盖（用于 workflow_dispatch 补救）
+          make_latest: true
           files: |
             qlabel-booster-userscript/dist/qlabel-booster.user.js
             qlabel-booster/dist/qlabel-booster-v${{ steps.version.outputs.version }}.zip
@@ -90,9 +92,3 @@ jobs:
             qlabel-booster/dist/qlabel-booster-v${{ steps.version.outputs.version }}-windows.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Skipped notice
-        if: steps.check_tag.outputs.tag_exists == 'true'
-        run: |
-          echo "::notice::Tag v${{ steps.version.outputs.version }} 已存在，本次不发布。"
-          echo "如果需要重新发，先在 GitHub 上删除该 tag 和 release，再 push 一次。"
