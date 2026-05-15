@@ -76,13 +76,22 @@
         kind: 'required'
       }));
     }
-    // v1.9.70：美学专项模板下，所有 textarea 都视为必填（"整体评分原因"、"维度评分原因"等都是必答的文字描述题）
+    // v1.9.70：美学专项模板下，所有"评分列内"的 textarea 都视为必填（每列一个"评分原因"）
+    // v1.9.75：把扫描范围限定到 getColumns()——避免把任务说明等无关 textarea 误判为必答
     if (global.QLBMode && global.QLBMode.template === 'label-aesthetic10') {
       try {
         const seenTextareas = new Set(
           fields.filter((f) => f.type === 'textarea').map((f) => f.el)
         );
-        document.querySelectorAll('textarea').forEach((t) => {
+        // 仅遍历评分列容器内的 textarea
+        const cols = (global.QLBSelectors && global.QLBSelectors.getColumns)
+          ? global.QLBSelectors.getColumns()
+          : [];
+        const reasonTextareas = [];
+        cols.forEach((c) => {
+          c.querySelectorAll('textarea').forEach((t) => reasonTextareas.push(t));
+        });
+        reasonTextareas.forEach((t) => {
           if (seenTextareas.has(t)) {
             // 已在 fields 中，确保它被标为 required
             const existing = fields.find((f) => f.el === t);

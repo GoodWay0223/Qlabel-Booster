@@ -649,24 +649,34 @@
     const { unanswered, total } = countUnanswered();
     const done = total - unanswered;
     // v1.9.70：美学专项模板下，额外显示评分原因填写率
+    // v1.9.75：把 textarea 限定在"评分列容器（getColumns）"内
+    //   之前直接 querySelectorAll('textarea') 会把页面上任务说明等不相关 textarea 也算进来
+    //   正确口径：每列 = 一个视频 = 一个"整体评分原因"
     let reasonInfo = '';
     let reasonTitle = '';
     if (global.QLBMode && global.QLBMode.template === 'label-aesthetic10') {
       try {
-        const textareas = document.querySelectorAll('textarea');
-        const reasonTotal = textareas.length;
+        const cols = (global.QLBSelectors && global.QLBSelectors.getColumns)
+          ? global.QLBSelectors.getColumns()
+          : [];
+        const reasonTextareas = [];
+        cols.forEach((c) => {
+          c.querySelectorAll('textarea').forEach((t) => reasonTextareas.push(t));
+        });
+        const reasonTotal = reasonTextareas.length;
         let reasonDone = 0;
-        textareas.forEach((t) => {
+        reasonTextareas.forEach((t) => {
           if ((t.value || '').trim().length > 0) reasonDone++;
         });
         if (reasonTotal > 0) {
-          reasonInfo = ` · 原因 ${reasonDone}/${reasonTotal}`;
+          reasonInfo = ` · 评分原因 ${reasonDone}/${reasonTotal}`;
           reasonTitle = `\n评分原因填写：${reasonDone} / 共 ${reasonTotal}`;
         }
       } catch (e) {}
     }
-    progressEl.textContent = `${done}/${total}${reasonInfo}`;
-    progressEl.title = `已答 ${done} / 共 ${total}${reasonTitle}`;
+    // v1.9.75：评分/评分原因前缀更直观
+    progressEl.textContent = `评分 ${done}/${total}${reasonInfo}`;
+    progressEl.title = `已答评分 ${done} / 共 ${total}${reasonTitle}`;
     progressEl.classList.toggle('qlb-progress--done', unanswered === 0 && total > 0);
   }
 
