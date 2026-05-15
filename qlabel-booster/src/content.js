@@ -33,10 +33,19 @@
     // 现在：标注题（数字分值）或 质检题（通过/不通过）任一存在都算"有题"
     if (getAllQuestionGroups().length > 0) return true;
     // 质检题特征
-    return !!(
+    if (
       document.querySelector('label[name="通过"]') ||
       document.querySelector('label[name="不通过"]')
-    );
+    ) return true;
+    // v1.9.80：简版任务（多视频 + textarea，无打分 radio）也认作"有题"
+    //   特征：≥ 2 个评分列容器 + ≥ 2 个视频 + 至少 1 个 textarea
+    try {
+      const cols = document.querySelectorAll('.cr-container-col--10').length;
+      const videos = document.querySelectorAll('video').length;
+      const textareas = document.querySelectorAll('textarea').length;
+      if (cols >= 2 && videos >= 2 && textareas >= 1) return true;
+    } catch (e) {}
+    return false;
   }
 
   /** 切换模式：teardown 旧模式 → init 新模式 */

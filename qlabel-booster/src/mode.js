@@ -52,13 +52,22 @@
       doc.querySelector('label[name="1"]')
     ) return 'label-old4';
 
+    // 4) v1.9.80：纯文本反馈型任务（简版：多视频 + textarea，无评分 radio）
+    //    特征：评分列 ≥ 2 + 视频 ≥ 2 + textarea ≥ 1
+    try {
+      const cols = doc.querySelectorAll('.cr-container-col--10').length;
+      const videos = doc.querySelectorAll('video').length;
+      const textareas = doc.querySelectorAll('textarea').length;
+      if (cols >= 2 && videos >= 2 && textareas >= 1) return 'label-textonly';
+    } catch (e) {}
+
     return 'unknown';
   }
 
   /** template → mode 的映射 */
   function templateToMode(tpl) {
     if (tpl === 'qa-old') return 'qa';
-    if (tpl === 'label-old4' || tpl === 'label-aesthetic10') return 'label';
+    if (tpl === 'label-old4' || tpl === 'label-aesthetic10' || tpl === 'label-textonly') return 'label';
     return 'unknown';
   }
 

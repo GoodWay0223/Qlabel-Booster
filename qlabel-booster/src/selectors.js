@@ -244,12 +244,18 @@
     return false;
   }
 
-  /** 获取所有列（视频列） */
+  /** 获取所有列（视频列）
+   *  v1.9.80：简版任务（label-textonly）列里没有 radio-group，只有 textarea + video
+   *  所以放宽过滤：含 radio-group / textarea / video 任一就算"有内容的列"
+   */
   function getColumns(root = document) {
     let cols = Array.from(root.querySelectorAll(SEL.column));
     if (cols.length === 0) cols = Array.from(root.querySelectorAll(SEL.columnFallback));
-    // 只保留含题目的列
-    return cols.filter((c) => c.querySelector(SEL.questionGroup));
+    return cols.filter((c) =>
+      c.querySelector(SEL.questionGroup) ||
+      c.querySelector('textarea') ||
+      c.querySelector('video')
+    );
   }
 
   /**

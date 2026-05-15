@@ -279,9 +279,12 @@
     if (!wrap) return;
     wrap.classList.toggle('qlb-toolbar--qa', mode === 'qa');
     wrap.classList.toggle('qlb-toolbar--label', mode !== 'qa');
+    // v1.9.80：label-textonly 简版任务隐藏一键全选区
+    const isTextOnly = global.QLBMode && global.QLBMode.template === 'label-textonly';
+    wrap.classList.toggle('qlb-toolbar--textonly', !!isTextOnly);
     const chip = wrap.querySelector('[data-mode-chip]');
     if (chip) {
-      chip.textContent = mode === 'qa' ? '质检' : '标注';
+      chip.textContent = mode === 'qa' ? '质检' : (isTextOnly ? '简版' : '标注');
       chip.classList.toggle('qlb-mode-chip--qa', mode === 'qa');
     }
   }
@@ -686,9 +689,13 @@
     // v1.9.75：把 textarea 限定在"评分列容器（getColumns）"内
     //   之前直接 querySelectorAll('textarea') 会把页面上任务说明等不相关 textarea 也算进来
     //   正确口径：每列 = 一个视频 = 一个"整体评分原因"
+    // v1.9.80：label-textonly 模板（纯文字反馈）也计算 reason
     let reasonInfo = '';
     let reasonTitle = '';
-    if (global.QLBMode && global.QLBMode.template === 'label-aesthetic10') {
+    const tplForProgress = global.QLBMode && global.QLBMode.template;
+    const needReason = tplForProgress === 'label-aesthetic10' || tplForProgress === 'label-textonly';
+    let reasonTotal = 0, reasonDone = 0;
+    if (needReason) {
       try {
         const cols = (global.QLBSelectors && global.QLBSelectors.getColumns)
           ? global.QLBSelectors.getColumns()
@@ -697,8 +704,7 @@
         cols.forEach((c) => {
           c.querySelectorAll('textarea').forEach((t) => reasonTextareas.push(t));
         });
-        const reasonTotal = reasonTextareas.length;
-        let reasonDone = 0;
+        reasonTotal = reasonTextareas.length;
         reasonTextareas.forEach((t) => {
           if ((t.value || '').trim().length > 0) reasonDone++;
         });
@@ -708,10 +714,17 @@
         }
       } catch (e) {}
     }
-    // v1.9.75：评分/评分原因前缀更直观
-    progressEl.textContent = `评分 ${done}/${total}${reasonInfo}`;
-    progressEl.title = `已答评分 ${done} / 共 ${total}${reasonTitle}`;
-    progressEl.classList.toggle('qlb-progress--done', unanswered === 0 && total > 0);
+    // v1.9.80：label-textonly 没有评分题，只显示评分原因进度
+    if (tplForProgress === 'label-textonly') {
+      progressEl.textContent = reasonTotal > 0 ? `评分原因 ${reasonDone}/${reasonTotal}` : '简版';
+      progressEl.title = reasonTitle.replace(/^\n/, '');
+      progressEl.classList.toggle('qlb-progress--done', reasonTotal > 0 && reasonDone === reasonTotal);
+    } else {
+      // v1.9.75：评分/评分原因前缀更直观
+      progressEl.textContent = `评分 ${done}/${total}${reasonInfo}`;
+      progressEl.title = `已答评分 ${done} / 共 ${total}${reasonTitle}`;
+      progressEl.classList.toggle('qlb-progress--done', unanswered === 0 && total > 0);
+    }
   }
 
   /** 给每列顶部注入"本列全选"
@@ -722,6 +735,8 @@
   function injectColumnButtons() {
     // 质检模式由 qa.js 自己注入列顶按钮，这里不要插打分胶囊
     if (global.QLBMode && global.QLBMode.current === 'qa') return;
+    // v1.9.80：简版任务（无评分题）不注入列顶胶囊
+    if (global.QLBMode && global.QLBMode.template === 'label-textonly') return;
     const scores = getScores();
     const tpl = (global.QLBMode && global.QLBMode.template) || 'label-old4';
     const isWide = tpl === 'label-aesthetic10';
@@ -789,6 +804,8 @@
    *  v1.9.70：根据模板动态生成；新模板分两排 */
   function injectDimensionButtons() {
     if (global.QLBMode && global.QLBMode.current === 'qa') return;
+    // v1.9.80：简版任务不注入维度胶囊
+    if (global.QLBMode && global.QLBMode.template === 'label-textonly') return;
     const scores = getScores();
     const tpl = (global.QLBMode && global.QLBMode.template) || 'label-old4';
     const isWide = tpl === 'label-aesthetic10';

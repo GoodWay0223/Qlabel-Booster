@@ -25,8 +25,8 @@
 
   /** 路径黑名单：任务 iframe 本身 */
   const TASK_IFRAME_RE = /^\/combinator\//i;
-  /** 路径黑名单：任务详情壳页 /workspace/assignment/progress/数字/数字/数字 */
-  const TASK_DETAIL_RE = /^\/workspace\/assignment\/[^/]+\/\d+/i;
+  /** 路径黑名单：作业壳页（含 /assignment/ 段一律不显示） */
+  const ASSIGNMENT_RE = /\/assignment\//i;
   /** 显示白名单：后台管理路径 */
   const ADMIN_PATH_RE = /^\/(merchant|teamspace|workspace)(\/|$)/i;
 
@@ -36,7 +36,7 @@
       if (!/qlabel\.qq\.com$/i.test(location.hostname)) return false;
       const path = location.pathname || '';
       if (TASK_IFRAME_RE.test(path)) return false;
-      if (TASK_DETAIL_RE.test(path)) return false;
+      if (ASSIGNMENT_RE.test(path)) return false;
       if (!ADMIN_PATH_RE.test(path)) return false;
       return true;
     } catch (e) { return false; }
@@ -210,10 +210,10 @@
   }
 
   async function init() {
-    if (!shouldShow()) return;
+    // v1.9.80：永远启动监听（SPA 切路由时也能正确显示/隐藏）
     await loadState();
     if (!document.body) {
-      document.addEventListener('DOMContentLoaded', refresh, { once: true });
+      document.addEventListener('DOMContentLoaded', () => init(), { once: true });
       return;
     }
     refresh();

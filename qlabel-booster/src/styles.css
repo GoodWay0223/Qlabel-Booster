@@ -1477,3 +1477,9 @@ body {
   height: 22px;
 }
 
+
+/* v1.9.80：简版任务（label-textonly）隐藏一键全选 / 撤销区 */
+.qlb-toolbar--textonly .qlb-mode-only-label,
+.qlb-toolbar--textonly .qlb-section--undo {
+  display: none !important;
+}
