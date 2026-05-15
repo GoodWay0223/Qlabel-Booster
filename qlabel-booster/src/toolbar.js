@@ -35,7 +35,10 @@
     const autoLoop = state.prefs.autoLoopVideos !== false;
     const syncScroll = state.prefs.syncScroll !== false;
     // v1.9.49：类别打分跳转默认关闭，所以判定改用 === true（不是 !== false）
-    const advanceAfterDimension = state.prefs.advanceAfterDimension === true;
+    // v1.9.72：按模板读独立开关（美学专项默认关，老 4 档默认开）
+    const advanceAfterDimension = global.QLBState.getAdvanceAfterDimension
+      ? global.QLBState.getAdvanceAfterDimension()
+      : (state.prefs.advanceAfterDimension === true);
     const isQa = global.QLBMode && global.QLBMode.current === 'qa';
     // v1.9.8：根据系统显示对应快捷键文案（mac → ⌘+⇧+P / win → Ctrl+Shift+P）
     const P = global.QLBPlatform || { combo: () => '⌘/Ctrl+Shift+P', isMac: false };
@@ -184,11 +187,16 @@
     }
 
     // v1.9.48：维度胶囊打分后自动跳下一未答 开关
+    // v1.9.72：按模板写入独立 key（美学专项 / 旧 4 档 各自记忆）
     const advDimSwitch = wrap.querySelector('#qlb-advance-dim');
     if (advDimSwitch) {
       advDimSwitch.addEventListener('change', () => {
         const v = !!advDimSwitch.checked;
-        savePrefs({ advanceAfterDimension: v });
+        if (global.QLBState.setAdvanceAfterDimension) {
+          global.QLBState.setAdvanceAfterDimension(v);
+        } else {
+          savePrefs({ advanceAfterDimension: v });
+        }
         global.QLBMissing && global.QLBMissing.toast(v
           ? '✅ 维度打分后会自动跳到下一未答题'
           : '⏸ 维度打分后保持当前焦点');
@@ -704,11 +712,25 @@
         if (!b) return;
         scoreColumn(col, b.dataset.score);
         updateProgress();
-        // v1.9.42：本列全选后跳到"下一道未答题"
+        // v1.9.72：美学专项模板下，"本列全选"后优先聚焦该列的"整体评分原因" textarea
+        //  （让用户立刻填写理由；如果原因已填则跳到下一未答）
         try {
+          const tpl = (global.QLBMode && global.QLBMode.template) || 'label-old4';
+          const Nav = global.QLBNavigator;
+          if (tpl === 'label-aesthetic10') {
+            const ta = col.querySelector('textarea');
+            if (ta && !(ta.value || '').trim()) {
+              // 直接聚焦 textarea
+              try {
+                if (Nav && Nav.scrollIntoSafeView) Nav.scrollIntoSafeView(ta);
+              } catch (er) {}
+              try { ta.focus({ preventScroll: false }); } catch (er) {}
+              return;
+            }
+          }
+          // 原模板 / textarea 已填 → 跳到下一道未答题
           const curList = getQuestionsInColumn(col);
           const lastInCol = curList[curList.length - 1];
-          const Nav = global.QLBNavigator;
           if (lastInCol && Nav && Nav.setFocus && Nav.moveFocus) {
             Nav.setFocus(lastInCol, { scroll: false });
             Nav.moveFocus(1, { skipAnswered: true });
@@ -754,7 +776,11 @@
           e.stopPropagation();
           scoreDimension(dim, b.dataset.score);
           updateProgress();
-          if (state.prefs.advanceAfterDimension === true) {
+          // v1.9.72：按模板读独立开关
+          const shouldAdv = global.QLBState.getAdvanceAfterDimension
+            ? global.QLBState.getAdvanceAfterDimension()
+            : (state.prefs.advanceAfterDimension === true);
+          if (shouldAdv) {
             if (window.__QLB_VERBOSE__) console.log('[QLB] dim-bar click → advanceAfterDimension=true → moveFocus');
             try {
               const lastInDim = dim.groups && dim.groups[dim.groups.length - 1];
@@ -765,7 +791,7 @@
               }
             } catch (er) {}
           } else {
-            if (window.__QLB_VERBOSE__) console.log('[QLB] dim-bar click → advanceAfterDimension=' + state.prefs.advanceAfterDimension + ' → SKIP advance');
+            if (window.__QLB_VERBOSE__) console.log('[QLB] dim-bar click → advanceAfterDimension=false (按当前模板) → SKIP advance');
           }
         });
         titleP.appendChild(bar);

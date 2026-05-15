@@ -27,7 +27,10 @@
     // v1.9.67：默认改为 true。理由：v1.9.65 已经把"焦点移动"和"视口滚动"解耦，
     //         关闭开关时焦点不动但视口也不滚（最不打扰），开启时焦点 + 视口都跟随
     //         默认开启更符合"打完一题继续打下一题"的连续工作流
-    advanceAfterDimension: true
+    advanceAfterDimension: true,
+    // v1.9.72：美学专项（1-10）模板下的独立开关，默认关闭
+    // 新模板每题之间有 textarea 评分原因，需要用户写理由，自动跳转会打扰填写节奏
+    advanceAfterDimensionAesthetic10: false
   };
 
   // v1.9.23：一次性迁移键 —— 用于把"v1.9.22 及之前用户本地已存的 syncScroll=false"
@@ -106,5 +109,32 @@
     /* 某些受限环境不支持 onChanged */
   }
 
-  global.QLBState = { state, DEFAULTS, loadPrefs, savePrefs, onPrefsChange };
+  /** v1.9.72：根据当前模板，读"维度打分后自动跳转"的开关
+   *  - label-aesthetic10 → 用 advanceAfterDimensionAesthetic10（默认 false）
+   *  - 其它模板 → 用 advanceAfterDimension（默认 true）
+   */
+  function getAdvanceAfterDimension() {
+    try {
+      const tpl = (global.QLBMode && global.QLBMode.template) || 'label-old4';
+      if (tpl === 'label-aesthetic10') {
+        return state.prefs.advanceAfterDimensionAesthetic10 === true;
+      }
+      return state.prefs.advanceAfterDimension === true;
+    } catch (e) {
+      return state.prefs.advanceAfterDimension === true;
+    }
+  }
+
+  /** v1.9.72：根据当前模板写开关 */
+  function setAdvanceAfterDimension(v) {
+    try {
+      const tpl = (global.QLBMode && global.QLBMode.template) || 'label-old4';
+      if (tpl === 'label-aesthetic10') {
+        return savePrefs({ advanceAfterDimensionAesthetic10: !!v });
+      }
+      return savePrefs({ advanceAfterDimension: !!v });
+    } catch (e) {}
+  }
+
+  global.QLBState = { state, DEFAULTS, loadPrefs, savePrefs, onPrefsChange, getAdvanceAfterDimension, setAdvanceAfterDimension };
 })(window);

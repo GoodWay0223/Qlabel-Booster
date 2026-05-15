@@ -250,6 +250,72 @@
     return list;
   }
 
+  /** v1.9.72：扩展线性列表（仅美学专项 1-10 模板用）
+   *   - 在每列内按 DOM 顺序混合 .cr-radio-group 和 textarea
+   *   - 这样首次自动聚焦 / Tab / ↓ 都会经过"整体评分原因"等 textarea
+   *   - textarea 限定在该列容器内，避免误抓到任务说明等其它 textarea
+   *   - 老模板（label-old4）行为不变，仍只用 group 列表
+   */
+  function getLinearListExtended() {
+    const tpl = (global.QLBMode && global.QLBMode.template) || 'label-old4';
+    if (tpl !== 'label-aesthetic10') return getLinearList();
+    const cols = getColumns();
+    if (cols.length === 0) return getAllQuestionGroups();
+    const list = [];
+    for (const c of cols) {
+      // 该列内按 DOM 顺序遍历 group 和 textarea
+      const nodes = c.querySelectorAll('.cr-radio-group, textarea');
+      nodes.forEach((n) => list.push(n));
+    }
+    return list;
+  }
+
+  /** v1.9.72：判断节点是否"未答"
+   *   - radio-group：getCurrentScore 返回 null
+   *   - textarea：value 为空
+   */
+  function isNodeUnanswered(node) {
+    if (!node) return false;
+    if (node.tagName === 'TEXTAREA') {
+      return !((node.value || '').trim());
+    }
+    return getCurrentScore(node) === null;
+  }
+
+  /** v1.9.72：把焦点设置到任意节点（group 或 textarea），自动分流 */
+  function setFocusOnNode(node, opts = {}) {
+    if (!node) return;
+    if (node.tagName === 'TEXTAREA') {
+      // textarea：直接 focus，不要走 group 的高亮路径（避免 outline 框住整个列）
+      try {
+        // 用 scrollIntoSafeView 拉到安全区
+        if (opts.scroll !== false && typeof scrollIntoSafeView === 'function') {
+          scrollIntoSafeView(node);
+        }
+      } catch (e) {}
+      try { node.focus({ preventScroll: opts.scroll === false }); } catch (e) {}
+      // 清掉 group 的聚焦态，避免视觉混乱
+      clearFocus();
+      // 横向同步：textarea 也按它所在列驱动同步（让对应视频列居中）
+      try {
+        const col = node.closest && node.closest('.cr-container-col--10');
+        if (col && global.QLBScrollSync && global.QLBScrollSync.syncByFocusedGroup) {
+          // 临时把 focusedGroup 指到列里第一道题，触发同步
+          const firstG = col.querySelector('.cr-radio-group');
+          if (firstG) {
+            const saved = state.focusedGroup;
+            state.focusedGroup = firstG;
+            try { global.QLBScrollSync.syncByFocusedGroup(); } catch (er) {}
+            state.focusedGroup = saved;
+          }
+        }
+      } catch (e) {}
+      return;
+    }
+    // group：走原 setFocus
+    return setFocus(node, opts);
+  }
+
   /** 获取 group 所在列索引 */
   function getColumnIndexOf(group) {
     const cols = getColumns();
@@ -387,6 +453,57 @@
         console.log('[QLB] stack:', stack.split('\n').slice(1, 6).join('\n'));
       } catch (e) {}
     }
+
+    // v1.9.72：美学专项模板 → 用扩展列表（混合 group + textarea）
+    const tpl = (global.QLBMode && global.QLBMode.template) || 'label-old4';
+    if (tpl === 'label-aesthetic10') {
+      const xList = getLinearListExtended();
+      if (xList.length === 0) return;
+      // 当前节点：优先 state.focusedGroup，其次 document.activeElement（textarea 聚焦时）
+      let curNode = resolveActiveFocus();
+      if (!curNode) {
+        try {
+          const ae = document.activeElement;
+          if (ae && ae.tagName === 'TEXTAREA' && xList.indexOf(ae) !== -1) curNode = ae;
+        } catch (e) {}
+      }
+      let xIdx = curNode ? xList.indexOf(curNode) : -1;
+      if (xIdx === -1) xIdx = 0;
+
+      if (skipAnswered) {
+        const step = delta >= 0 ? 1 : -1;
+        const N = xList.length;
+        let i = xIdx + step;
+        let found = -1;
+        while (i >= 0 && i < N) {
+          if (isNodeUnanswered(xList[i])) { found = i; break; }
+          i += step;
+        }
+        if (found === -1) {
+          for (let j = 0; j < N; j++) {
+            if (isNodeUnanswered(xList[j])) { found = j; break; }
+          }
+          if (found !== -1) {
+            try { global.QLBMissing && global.QLBMissing.toast && global.QLBMissing.toast('↩ 后面没有未答题了，已跳到首个未答题'); } catch (e) {}
+          }
+        }
+        if (found !== -1) {
+          setFocusOnNode(xList[found]);
+          return;
+        }
+        // 全部已答 → 普通 +delta 退化
+        xIdx = (xIdx + delta + N) % N;
+        setFocusOnNode(xList[xIdx]);
+        try { global.QLBMissing && global.QLBMissing.toast && global.QLBMissing.toast('🎉 全部题目已答完'); } catch (e) {}
+        return;
+      }
+      // 普通 +delta 移动（绕回）
+      xIdx = (xIdx + delta + xList.length) % xList.length;
+      setFocusOnNode(xList[xIdx]);
+      return;
+    }
+
+    // 旧模板：保持原逻辑
     const list = getLinearList();
     if (list.length === 0) return;
     const cur = resolveActiveFocus();
@@ -456,14 +573,29 @@
     setFocus(nextList[rowIdx]);
   }
 
-  /** 跳转到首个未答题（优先打分 radio 组；若全部答完但仍有其它必填字段未填，降级跳到那里） */
+  /** 跳转到首个未答题（优先打分 radio 组；若全部答完但仍有其它必填字段未填，降级跳到那里）
+   *  v1.9.72：美学专项模板下，textarea 评分原因为空也算未答，按 DOM 顺序定位
+   */
   function focusFirstUnanswered() {
-    const list = getLinearList();
-    for (const g of list) {
-      if (getCurrentScore(g) === null) {
-        // v1.9.29：跨屏跳转用安全视图 + 红色强脉冲标记（代替蓝框）
-        setFocus(g, { safeView: true, markAsMissingTarget: true });
-        return g;
+    const tpl = (global.QLBMode && global.QLBMode.template) || 'label-old4';
+    if (tpl === 'label-aesthetic10') {
+      // 用扩展列表（含 textarea），按 DOM 顺序找第一个未答
+      const list = getLinearListExtended();
+      for (const node of list) {
+        if (isNodeUnanswered(node)) {
+          setFocusOnNode(node, { safeView: true, markAsMissingTarget: node.tagName !== 'TEXTAREA' });
+          return node;
+        }
+      }
+      // 全部已答（含 textarea），降级到 group 列表的"全部已答"路径
+    } else {
+      const list = getLinearList();
+      for (const g of list) {
+        if (getCurrentScore(g) === null) {
+          // v1.9.29：跨屏跳转用安全视图 + 红色强脉冲标记（代替蓝框）
+          setFocus(g, { safeView: true, markAsMissingTarget: true });
+          return g;
+        }
       }
     }
     // 所有打分题已答，但可能有其它必填字段（文本/下拉等）还没填
@@ -790,16 +922,16 @@
     document.addEventListener('click', onPageClick, true);
 
     // 启动时自动聚焦首道未答题（无需鼠标点击）。质检模式由 qa.js 自己接管聚焦
+    // v1.9.72：美学专项模板下，textarea 评分原因为空也算未答，统一走 focusFirstUnanswered
     setTimeout(() => {
       if (global.QLBMode && global.QLBMode.current === 'qa') return;
       if (state.focusedGroup) return;
-      const list = getLinearList();
-      if (list.length === 0) return;
-      let target = null;
-      for (const g of list) {
-        if (getCurrentScore(g) === null) { target = g; break; }
-      }
-      if (target) setFocus(target, { scroll: false });
+      // 已聚焦到 textarea 时（focus 在 body 之外的 textarea），也别覆盖
+      try {
+        const ae = document.activeElement;
+        if (ae && ae.tagName === 'TEXTAREA') return;
+      } catch (e) {}
+      focusFirstUnanswered();
     }, 600);
   }
 

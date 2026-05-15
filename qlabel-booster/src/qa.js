@@ -653,6 +653,10 @@
    *  注意：按 2（不通过）行为不受此开关影响——因为下一步必须填修正分输入，跳走会破坏工作流。 */
   function qaShouldAdvance() {
     try {
+      // v1.9.72：质检模式只有旧模板，但仍走统一封装，便于未来扩展
+      if (global.QLBState && global.QLBState.getAdvanceAfterDimension) {
+        return global.QLBState.getAdvanceAfterDimension();
+      }
       return global.QLBState && global.QLBState.state &&
              global.QLBState.state.prefs &&
              global.QLBState.state.prefs.advanceAfterDimension === true;
