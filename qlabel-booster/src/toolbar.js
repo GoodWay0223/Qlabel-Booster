@@ -630,22 +630,22 @@
           <div class="qlb-help-tips">
             <div class="qlb-kbd-tip">
               ${tpl === 'label-aesthetic10'
-                ? '<b>工作流：</b>页面打开后自动聚焦视频1·整体评分 → 按 <kbd>1</kbd>~<kbd>9</kbd> 或 <kbd>0</kbd>/<kbd>`</kbd> 打分 → 焦点跳到「整体评分原因」 textarea，输入完按 ' + ((global.QLBPlatform && global.QLBPlatform.combHTML('mod+enter')) || '<kbd>⌘/Ctrl</kbd>+<kbd>Enter</kbd>') + ' → 跳到维度1评分 → … → 视频2 整体评分 → … 顺序<b>竖着走</b>。'
-                : '<b>工作流：</b>打开页面自动聚焦首个未答题 → 按 <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> 打分（<kbd>`</kbd>/<kbd>~</kbd>/<kbd>4</kbd> 都是 none）→ 自动跳下一题。顺序<b>竖着走</b>：视频1 打完 → 视频2 → …'}
+                ? '<b>工作流：</b>整体评分 → 整体评分原因 → 维度1评分 → … → 下一视频。顺序<b>竖着走</b>。'
+                : '<b>工作流：</b>按 <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> 打分自动跳下一题。顺序<b>竖着走</b>：视频1 → 视频2 → …'}
             </div>
             <div class="qlb-kbd-tip">
               ${tpl === 'label-aesthetic10'
-                ? '<b>批量：</b>工具栏「一键全选」整页同分（按钮颜色随分值红→绿渐变） · 每列顶「本列全选」打完会自动跳到该列「整体评分原因」 · 维度旁胶囊只影响该维度 · 「维度打分后自动跳转」开关美学版默认<b>关闭</b>（防打扰填理由）。'
-                : '<b>批量：</b>工具栏「一键全选」整页同分 · 每列顶「本列全选」 · 维度标题胶囊按钮只影响该维度 · 「撤销」回退上次批量 · 提交时有未答会拦截高亮。'}
+                ? '<b>批量：</b>「一键全选」整页同分 · 「本列全选」后自动跳到该列「评分原因」 · 维度胶囊只影响该维度。'
+                : '<b>批量：</b>「一键全选」整页同分 · 每列顶「本列全选」 · 维度胶囊只影响该维度 · 「撤销」回退上次批量。'}
             </div>
             <div class="qlb-kbd-tip">
-              <b>📋 草稿：</b>每次打分 / 输入评分原因都会自动存到本地（300ms 去抖；关标签前最后兜底写一次），刷新或视频加载失败后点工具栏 <b>📋</b> 一键恢复。<b>仅本地，不上传任何数据；7 天后自动清理。</b>
+              <b>📋 草稿：</b>打分 / 输入会自动存到本地，刷新后点 <b>📋</b> 一键恢复。<b>仅本地，7 天自动清理。</b>
             </div>
             <div class="qlb-kbd-tip">
               <b>📚 文档：</b>
-              评估标注标准细则 <a href="https://doc.weixin.qq.com/sheet/e3_AaAAXgafAHACNkxs6voK0RfmB7u01?scode=AJEAIQdfAAoj95bK6FAVYAmga9AP8&tab=cbn8jc" target="_blank" rel="noopener noreferrer" class="qlb-doc-link">点击访问</a>
+              评估标注标准细则 <a href="https://doc.weixin.qq.com/sheet/e3_AfAAWwZbAKACNsAqCW3xCSUmqLUk5?scode=AJEAIQdfAAo5nVxklgAVYAmga9AP8&tab=n5m704" target="_blank" rel="noopener noreferrer" class="qlb-doc-link">点击访问</a>
               ·
-              质检问题共识 <a href="https://doc.weixin.qq.com/sheet/e3_AaQAUQYCAM4CNuwOqle4dRzewl6YX?scode=AJEAIQdfAAotW5ZLtBAVYAmga9AP8&tab=BB08J2" target="_blank" rel="noopener noreferrer" class="qlb-doc-link">点击访问</a>
+              质检问题共识 <a href="https://doc.weixin.qq.com/sheet/e3_Ae4ARQaFALUCN6cPTzjiUTcK0i75p?scode=AJEAIQdfAAoWOgJFHcAVYAmga9AP8&tab=BB08J2" target="_blank" rel="noopener noreferrer" class="qlb-doc-link">点击访问</a>
             </div>
           </div>
         </div>
