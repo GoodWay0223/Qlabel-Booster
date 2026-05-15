@@ -118,10 +118,30 @@
    *    2. 列容器中的所有题目里，el 是不是第 1 个？
    *       - 是 → 锚点 = 该列的 .qlb-col-bar（如果存在），让列顶胶囊一起进入视口
    *       - 否 → 锚点 = el（普通列内题）
-   *    3. 任何异常 → 退化为 el
+   *    3. v1.9.74：如果 el 是 textarea（美学专项的"评分原因"），把锚点切到它前面最近的
+   *       .cr-radio-group —— 这样滚动行为和评分题完全一致，定位非常准
+   *    4. 任何异常 → 退化为 el
    */
   function pickScrollAnchor(el) {
-    if (!el || !el.classList || !el.classList.contains('cr-radio-group')) return el;
+    if (!el || !el.classList) return el;
+    // v1.9.74：textarea → 用它前面最近的评分组作为锚点
+    if ((el.tagName || '').toLowerCase() === 'textarea') {
+      try {
+        // 在所属列容器内反向找最近的评分组
+        const col = el.closest('.cr-container-col--10') || el.closest('[class*="cr-container-col"]');
+        if (col) {
+          const all = Array.from(col.querySelectorAll('.cr-radio-group, textarea'));
+          const idx = all.indexOf(el);
+          for (let i = idx - 1; i >= 0; i--) {
+            if (all[i].classList && all[i].classList.contains('cr-radio-group')) {
+              return all[i];
+            }
+          }
+        }
+      } catch (e) {}
+      return el;
+    }
+    if (!el.classList.contains('cr-radio-group')) return el;
     try {
       const cols = getColumns();
       // 找 el 所在列
@@ -162,7 +182,9 @@
       const occLine = getTopOcclusion() + 8;
       // 如果 anchor 比 el 大（含 col-bar），bottom 可能超过 vh - 60；
       // 此时只看 top 是否过遮挡线即可（anchor 的高度可能很高，整体放进视口不现实）
-      const elRect = el.getBoundingClientRect();
+      // v1.9.74：当 el 是 textarea 时，用 anchor（前面的评分组）的 rect 来判定"是否已在安全区"
+      //   避免 textarea 自身高度大导致 elRect.bottom 误判触发滚动
+      const elRect = ((el.tagName || '').toLowerCase() === 'textarea') ? r0 : el.getBoundingClientRect();
       if (r0.top >= occLine && elRect.bottom <= vh0 - 60) return;
     } catch (e) {}
     try {
