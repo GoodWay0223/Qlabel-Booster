@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "QLabel Booster",
-  "version": "1.9.77",
+  "version": "1.9.78",
   "description": "腾讯 QLabel / EvalVerse 标注质检提效插件，标注+质检双模式：一键批量打分、悬浮循环视频窗、键盘快捷键、未答题定位等功能。Built by 实习生godwayxiong熊🐼。",
   "author": "godwayxiong熊 (实习生)",
   "icons": {
@@ -44,6 +44,7 @@
         "src/wheel-pan.js",
         "src/qa.js",
         "src/draft.js",
+        "src/admin-switcher.js",
         "src/toolbar.js",
         "src/content.js"
       ],

@@ -1402,3 +1402,51 @@ body {
   font-size: 12px;
   min-width: 0;
 }
+
+/* v1.9.78：管理员后台快速切换浮动条（仅 merchant/teamspace/workspace 顶层显示） */
+.qlb-admin-switcher {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 999998;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: rgba(17, 24, 39, 0.92);
+  color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  font-size: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif;
+  backdrop-filter: blur(6px);
+  pointer-events: auto;
+}
+.qlb-admin-switcher__title {
+  font-weight: 700;
+  margin-right: 4px;
+  color: #fbbf24;
+  white-space: nowrap;
+}
+.qlb-admin-switcher__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e5e7eb !important;
+  text-decoration: none !important;
+  white-space: nowrap;
+  transition: background 0.12s, transform 0.12s;
+  border: 1px solid transparent;
+}
+.qlb-admin-switcher__btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
+}
+.qlb-admin-switcher__btn--active {
+  background: #3b82f6 !important;
+  color: #fff !important;
+  border-color: #60a5fa;
+}

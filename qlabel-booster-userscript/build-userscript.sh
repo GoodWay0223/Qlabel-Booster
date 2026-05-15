@@ -120,6 +120,7 @@ MODULES=(
   "wheel-pan.js"
   "qa.js"
   "draft.js"
+  "admin-switcher.js"
   "toolbar.js"
   "content.js"
 )

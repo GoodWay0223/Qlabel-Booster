@@ -217,6 +217,8 @@
 
   function start() {
     log('内容脚本加载，URL:', location.href);
+    // v1.9.78：管理员后台快速切换浮动条（独立于 hasQuestions，最早期启动）
+    try { window.QLBAdminSwitcher && window.QLBAdminSwitcher.init(); } catch (e) {}
     tick();
     observeDom();
     setupCrossFrameKey();
