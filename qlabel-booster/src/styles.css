@@ -1403,7 +1403,7 @@ body {
   min-width: 0;
 }
 
-/* v1.9.79：管理员后台快速切换浮动条（仅后台列表/管理页顶层显示，可拖动 + 贴边收起） */
+/* v1.9.82：管理员后台快速切换浮动条（仅后台列表/管理页顶层显示，可拖动 + 位置记忆） */
 .qlb-admin-switcher {
   position: fixed;
   top: 12px;
@@ -1423,12 +1423,10 @@ body {
   pointer-events: auto;
   user-select: none;
   cursor: grab;
-  transition: padding 0.15s ease;
 }
 .qlb-admin-switcher--dragging {
   cursor: grabbing !important;
   opacity: 0.92;
-  transition: none !important;
 }
 .qlb-admin-switcher__handle {
   display: inline-flex;
@@ -1462,75 +1460,6 @@ body {
   background: #3b82f6 !important;
   color: #fff !important;
   border-color: #60a5fa;
-}
-
-/* v1.9.81：handle 内部结构（⚡ + 朝向页面内的箭头） */
-.qlb-admin-switcher__handle-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  color: #fbbf24;
-  transition: transform 0.18s ease;
-}
-.qlb-admin-switcher__handle-arrow {
-  display: none;
-  width: 0;
-  height: 0;
-  margin-left: 2px;
-}
-
-/* 收起态：把元素整体变成"贴边小药丸"，半隐藏在屏幕外露出箭头作为可见提示 */
-.qlb-admin-switcher--collapsed {
-  padding: 6px 8px;
-  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-  border-radius: 16px;
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
-  cursor: pointer;
-  animation: qlb-admin-pulse 2s ease-in-out infinite;
-}
-.qlb-admin-switcher--collapsed:hover {
-  animation: none;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  transform: scale(1.06);
-}
-.qlb-admin-switcher--collapsed .qlb-admin-switcher__btn {
-  display: none;
-}
-.qlb-admin-switcher--collapsed .qlb-admin-switcher__handle {
-  display: inline-flex;
-  align-items: center;
-  cursor: pointer;
-}
-.qlb-admin-switcher--collapsed .qlb-admin-switcher__handle-icon {
-  font-size: 15px;
-  color: #fff;
-}
-.qlb-admin-switcher--collapsed .qlb-admin-switcher__handle-arrow {
-  display: inline-block;
-  border-style: solid;
-}
-/* 吸附在左：箭头朝右 ▶（指向页面内） */
-.qlb-admin-switcher--collapsed.qlb-admin-switcher--side-left .qlb-admin-switcher__handle-arrow {
-  border-width: 4px 0 4px 5px;
-  border-color: transparent transparent transparent #fff;
-}
-/* 吸附在右：箭头朝左 ◀ */
-.qlb-admin-switcher--collapsed.qlb-admin-switcher--side-right .qlb-admin-switcher__handle-arrow {
-  border-width: 4px 5px 4px 0;
-  border-color: transparent #fff transparent transparent;
-  margin-left: 0;
-  margin-right: 2px;
-  order: -1;
-}
-
-/* 心跳动画：让用户注意到"这里可以点开" */
-@keyframes qlb-admin-pulse {
-  0%, 100% { box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35); }
-  50%      { box-shadow: 0 4px 14px rgba(37, 99, 235, 0.7), 0 0 0 6px rgba(37, 99, 235, 0.12); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .qlb-admin-switcher--collapsed { animation: none; }
 }
 
 
