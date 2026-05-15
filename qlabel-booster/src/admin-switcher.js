@@ -22,6 +22,7 @@
   const SWITCHER_ID = 'qlb-admin-switcher';
   const STORAGE_KEY_POS = 'adminSwitcherPos';        // {x, y}
   const STORAGE_KEY_COLLAPSED = 'adminSwitcherCollapsed';
+  const STORAGE_KEY_SIDE = 'adminSwitcherSide';      // 'left' | 'right'，吸附在哪一侧
 
   /** 路径黑名单：任务 iframe 本身 */
   const TASK_IFRAME_RE = /^\/combinator\//i;
@@ -58,14 +59,15 @@
     { key: 'workspace', short: '个人', url: 'https://qlabel.qq.com/workspace/assignment/progress?page=1&size=20' }
   ];
 
-  let saved = { pos: null, collapsed: false };
+  let saved = { pos: null, collapsed: false, side: 'left' };
 
   function loadState() {
     return new Promise((resolve) => {
       try {
-        chrome.storage.local.get([STORAGE_KEY_POS, STORAGE_KEY_COLLAPSED], (obj) => {
+        chrome.storage.local.get([STORAGE_KEY_POS, STORAGE_KEY_COLLAPSED, STORAGE_KEY_SIDE], (obj) => {
           saved.pos = obj && obj[STORAGE_KEY_POS] || null;
           saved.collapsed = !!(obj && obj[STORAGE_KEY_COLLAPSED]);
+          saved.side = (obj && obj[STORAGE_KEY_SIDE]) === 'right' ? 'right' : 'left';
           resolve();
         });
       } catch (e) { resolve(); }
@@ -92,9 +94,11 @@
 
   function applyCollapsed(el) {
     el.classList.toggle('qlb-admin-switcher--collapsed', !!saved.collapsed);
+    el.classList.toggle('qlb-admin-switcher--side-left', saved.side === 'left');
+    el.classList.toggle('qlb-admin-switcher--side-right', saved.side === 'right');
   }
 
-  /** 检测是否处于"屏幕边缘"，是则 collapse */
+  /** 检测是否处于"屏幕边缘"，是则 collapse + 记录 side */
   function maybeAutoCollapseByEdge(el) {
     const r = el.getBoundingClientRect();
     const vw = window.innerWidth;
@@ -102,11 +106,19 @@
     const nearLeft = r.left <= EDGE;
     const nearRight = vw - r.right <= EDGE;
     const wantCollapsed = nearLeft || nearRight;
+    const wantSide = nearRight ? 'right' : 'left';
+    let changed = false;
     if (wantCollapsed !== saved.collapsed) {
       saved.collapsed = wantCollapsed;
       saveState({ [STORAGE_KEY_COLLAPSED]: wantCollapsed });
-      applyCollapsed(el);
+      changed = true;
     }
+    if (wantCollapsed && wantSide !== saved.side) {
+      saved.side = wantSide;
+      saveState({ [STORAGE_KEY_SIDE]: wantSide });
+      changed = true;
+    }
+    if (changed) applyCollapsed(el);
   }
 
   /** 拖动行为绑定（mouse + touch） */
@@ -177,7 +189,10 @@
     wrap.id = SWITCHER_ID;
     wrap.className = 'qlb-admin-switcher';
     wrap.innerHTML =
-      '<span class="qlb-admin-switcher__handle" title="拖动可移动；贴边自动收起；点击展开">⚡</span>' +
+      '<span class="qlb-admin-switcher__handle" title="QLabel 切换 · 拖动可移动，贴边自动收起，点击展开">' +
+        '<span class="qlb-admin-switcher__handle-icon">⚡</span>' +
+        '<span class="qlb-admin-switcher__handle-arrow"></span>' +
+      '</span>' +
       TARGETS.map((t) => {
         const active = t.key === zone ? ' qlb-admin-switcher__btn--active' : '';
         return `<a class="qlb-admin-switcher__btn${active}" href="${t.url}" title="${t.short}">${t.short}</a>`;
@@ -189,14 +204,27 @@
     // 折叠时点 handle 展开
     wrap.querySelector('.qlb-admin-switcher__handle').addEventListener('click', (e) => {
       if (!wrap.classList.contains('qlb-admin-switcher--collapsed')) return;
-      // 不直接判定贴边，让用户手动展开（点击图标即展开）
       saved.collapsed = false;
       saveState({ [STORAGE_KEY_COLLAPSED]: false });
+      // 展开后从边缘往里"弹"一点，避免又立刻被边缘吸附
+      try {
+        const r = wrap.getBoundingClientRect();
+        const vw = window.innerWidth;
+        if (saved.side === 'right') {
+          const newLeft = Math.max(40, vw - r.width - 40);
+          wrap.style.left = newLeft + 'px';
+        } else {
+          wrap.style.left = '40px';
+        }
+        wrap.style.right = 'auto';
+        const r2 = wrap.getBoundingClientRect();
+        saved.pos = { x: r2.left, y: r2.top };
+        saveState({ [STORAGE_KEY_POS]: saved.pos });
+      } catch (er) {}
       applyCollapsed(wrap);
       e.preventDefault();
       e.stopPropagation();
     });
-    // 窗口大小变化时校正位置
     window.addEventListener('resize', () => applyPosition(wrap));
   }
 
