@@ -523,13 +523,37 @@
     const exist = document.getElementById(HELP_ID);
     if (exist) { exist.remove(); return; }
     const isQa = global.QLBMode && global.QLBMode.current === 'qa';
+    // v1.9.76：根据当前模板生成对应的"打分"快捷键表
+    const tpl = (global.QLBMode && global.QLBMode.template) || 'label-old4';
     const modeBadge = isQa
       ? '<span class="qlb-mode-chip qlb-mode-chip--qa" style="margin-left:8px">质检模式</span>'
-      : '<span class="qlb-mode-chip" style="margin-left:8px">标注模式</span>';
+      : (tpl === 'label-aesthetic10'
+        ? '<span class="qlb-mode-chip" style="margin-left:8px">标注模式 · 美学专项 1-10</span>'
+        : '<span class="qlb-mode-chip" style="margin-left:8px">标注模式 · 4 档评分</span>');
 
-    const labelTable = `
+    let labelTable;
+    if (tpl === 'label-aesthetic10') {
+      // 美学专项 1-10 分制
+      labelTable = `
       <table class="qlb-kbd-table">
-        <tr><th colspan="2">打分</th></tr>
+        <tr><th colspan="2">打分（美学专项 1-10 分）</th></tr>
+        <tr><td><kbd>1</kbd> ~ <kbd>9</kbd></td><td>分别打 <b>1 ~ 9</b> 分（红→绿渐变） → 自动跳下一项</td></tr>
+        <tr><td><kbd>0</kbd> / <kbd>\`</kbd> / <kbd>~</kbd></td><td><b style="color:#15803d">10</b> 分（最高） → 自动跳下一项</td></tr>
+        <tr><th colspan="2">评分原因（textarea）</th></tr>
+        <tr><td>直接输入</td><td>每打字 50 字自动 toast「💾 已保存草稿」</td></tr>
+        <tr><td>${(global.QLBPlatform && global.QLBPlatform.combHTML('mod+enter')) || '<kbd>⌘/Ctrl</kbd>+<kbd>Enter</kbd>'}</td><td>跳到下一道未答（不换行；普通 Enter 仍是换行）</td></tr>
+        <tr><th colspan="2">导航</th></tr>
+        <tr><td><kbd>↓</kbd> <kbd>Tab</kbd></td><td>下一项（评分 → 评分原因 → 下一维度评分 → … 列内 DOM 顺序）</td></tr>
+        <tr><td><kbd>↑</kbd> <kbd>⇧Tab</kbd></td><td>上一项</td></tr>
+        <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>切换视频列</td></tr>
+        <tr><td><kbd>N</kbd></td><td>定位未答题（循环）</td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>取消聚焦</td></tr>
+      </table>`;
+    } else {
+      // 旧 4 档评分模板
+      labelTable = `
+      <table class="qlb-kbd-table">
+        <tr><th colspan="2">打分（4 档评分）</th></tr>
         <tr><td><kbd>1</kbd></td><td><b style="color:#ef4444">0</b> 分 → 自动跳下一题</td></tr>
         <tr><td><kbd>2</kbd></td><td><b style="color:#f59e0b">0.5</b> 分 → 自动跳下一题</td></tr>
         <tr><td><kbd>3</kbd></td><td><b style="color:#10b981">1</b> 分 → 自动跳下一题</td></tr>
@@ -541,6 +565,7 @@
         <tr><td><kbd>N</kbd></td><td>定位未答题（循环）</td></tr>
         <tr><td><kbd>Esc</kbd></td><td>取消聚焦</td></tr>
       </table>`;
+    }
 
     const qaTable = `
       <table class="qlb-kbd-table qlb-kbd-table--qa">
@@ -593,7 +618,9 @@
                 <tr><td colspan="2" class="qlb-kbd-tip" style="margin-top:4px">
                   ${isQa
                     ? '质检模式：每个分组左上角有 <b style="color:#a855f7">#N</b> 序号；列顶有「全部通过 / 全部不通过」一键操作；每个修正分输入框下方有 <b>0/0.25/0.5/0.75/1/none</b> 胶囊按钮可点击。'
-                    : '标注模式：1/2/3 直接打分（` / ~ / 4 都是 none）并跳下一题。提交时若有未答会自动拦截。'
+                    : (tpl === 'label-aesthetic10'
+                      ? '美学专项：1-9 直接打分（0/`/~ 都是 10 分）→ 自动跳下一项；评分原因 textarea 也算未答；本列全选后焦点会自动跳到该列的"整体评分原因"。'
+                      : '4 档评分：1/2/3 直接打分（` / ~ / 4 都是 none）并跳下一题。提交时若有未答会自动拦截。')
                   }
                 </td></tr>
               </table>
@@ -602,10 +629,17 @@
           <!-- 底部横贯的工作流与操作区 -->
           <div class="qlb-help-tips">
             <div class="qlb-kbd-tip">
-              <b>工作流：</b>打开页面自动聚焦首个未答题（蓝框）→ 按 <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> 打分（<kbd>\`</kbd>/<kbd>~</kbd>/<kbd>4</kbd> 都是 none）→ 自动跳下一题。顺序<b>竖着走</b>：视频1 打完 → 视频2 → …
+              ${tpl === 'label-aesthetic10'
+                ? '<b>工作流：</b>页面打开后自动聚焦视频1·整体评分 → 按 <kbd>1</kbd>~<kbd>9</kbd> 或 <kbd>0</kbd>/<kbd>`</kbd> 打分 → 焦点跳到「整体评分原因」 textarea，输入完按 ' + ((global.QLBPlatform && global.QLBPlatform.combHTML('mod+enter')) || '<kbd>⌘/Ctrl</kbd>+<kbd>Enter</kbd>') + ' → 跳到维度1评分 → … → 视频2 整体评分 → … 顺序<b>竖着走</b>。'
+                : '<b>工作流：</b>打开页面自动聚焦首个未答题 → 按 <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> 打分（<kbd>`</kbd>/<kbd>~</kbd>/<kbd>4</kbd> 都是 none）→ 自动跳下一题。顺序<b>竖着走</b>：视频1 打完 → 视频2 → …'}
             </div>
             <div class="qlb-kbd-tip">
-              <b>批量：</b>工具栏「一键全选」整页同分 · 每列顶「本列全选」 · 维度标题胶囊按钮只影响该维度 · 「撤销」回退上次批量 · 提交时有未答会拦截高亮。
+              ${tpl === 'label-aesthetic10'
+                ? '<b>批量：</b>工具栏「一键全选」整页同分（按钮颜色随分值红→绿渐变） · 每列顶「本列全选」打完会自动跳到该列「整体评分原因」 · 维度旁胶囊只影响该维度 · 「维度打分后自动跳转」开关美学版默认<b>关闭</b>（防打扰填理由）。'
+                : '<b>批量：</b>工具栏「一键全选」整页同分 · 每列顶「本列全选」 · 维度标题胶囊按钮只影响该维度 · 「撤销」回退上次批量 · 提交时有未答会拦截高亮。'}
+            </div>
+            <div class="qlb-kbd-tip">
+              <b>📋 草稿：</b>每次打分 / 输入评分原因都会自动存到本地（300ms 去抖；关标签前最后兜底写一次），刷新或视频加载失败后点工具栏 <b>📋</b> 一键恢复。<b>仅本地，不上传任何数据；7 天后自动清理。</b>
             </div>
             <div class="qlb-kbd-tip">
               <b>📚 文档：</b>
