@@ -10,6 +10,16 @@
   const { state, savePrefs } = global.QLBState;
   const { scoreAll, scoreColumn, scoreDimension, undoLast, countUnanswered } = global.QLBScorer;
 
+  // v1.9.70：根据当前模板返回该模板下的合法分值数组
+  // - label-old4：['0','0.5','1','none']
+  // - label-aesthetic10：['1','2','3','4','5','6','7','8','9','10']
+  function getScores() {
+    if (global.QLBSelectors && global.QLBSelectors.getScoreValuesForCurrentTemplate) {
+      return global.QLBSelectors.getScoreValuesForCurrentTemplate();
+    }
+    return ['0', '0.5', '1', 'none'];
+  }
+  // 旧 SCORES 常量保留为旧 4 档兜底引用（仅供少数地方静态使用）
   const SCORES = ['0', '0.5', '1', 'none'];
   const TOOLBAR_ID = 'qlb-toolbar';
   const HELP_ID = 'qlb-help-modal';
@@ -49,18 +59,19 @@
         <!-- 标注模式区 -->
         <div class="qlb-section qlb-mode-only-label">
           <div class="qlb-section__title">一键全选</div>
-          <div class="qlb-row">
-            ${SCORES.map(
-              (s) => {
+          <div class="qlb-row qlb-row--score-grid">
+            ${(function () {
+              const _scores = getScores();
+              return _scores.map((s) => {
                 const tip = ({
                   '0': '整页全部打 0 分（最差）',
                   '0.5': '整页全部打 0.5 分（中等）',
                   '1': '整页全部打 1 分（最佳）',
                   'none': '整页全部选 none（不适用）'
-                })[s] || `全部 ${s}`;
-                return `<button class="qlb-btn qlb-btn--score qlb-btn--s${s.replace('.', '')}" data-action="all" data-score="${s}" title="${tip}">${s}</button>`;
-              }
-            ).join('')}
+                })[s] || `全部 ${s} 分`;
+                return `<button class="qlb-btn qlb-btn--score qlb-btn--s${String(s).replace('.', '')}" data-action="all" data-score="${s}" title="${tip}">${s}</button>`;
+              }).join('');
+            })()}
           </div>
         </div>
         <!-- 质检模式区 -->
@@ -454,8 +465,15 @@
         if (!confirm('将把草稿里的已打分重放到当前页面。已有分值的题目会跳过，不会被覆盖。继续？')) return;
         try {
           const r = D.restoreToPage(cur);
-          global.QLBMissing && global.QLBMissing.toast &&
-            global.QLBMissing.toast(`✅ 已恢复 ${r.restored} 题（跳过 ${r.skipped} 题已答、${r.mismatched} 题匹配不上）`, 4000);
+          if (r.error) {
+            // v1.9.70：模板不匹配 / 草稿空 等错误
+            global.QLBMissing && global.QLBMissing.toast &&
+              global.QLBMissing.toast(`❌ ${r.error}`, 5000);
+          } else {
+            const reasonPart = r.reasonRestored ? ` · 文本 ${r.reasonRestored} 段` : '';
+            global.QLBMissing && global.QLBMissing.toast &&
+              global.QLBMissing.toast(`✅ 已恢复 ${r.restored} 题${reasonPart}（跳过 ${r.skipped}、未匹配 ${r.mismatched}）`, 4000);
+          }
         } catch (err) {
           global.QLBMissing && global.QLBMissing.toast && global.QLBMissing.toast('❌ 恢复失败：' + err.message, 3000);
         }
@@ -622,35 +640,71 @@
     }
     const { unanswered, total } = countUnanswered();
     const done = total - unanswered;
-    progressEl.textContent = `${done}/${total}`;
-    progressEl.title = `已答 ${done} / 共 ${total}（含默认已选 none 的题）`;
+    // v1.9.70：美学专项模板下，额外显示评分原因填写率
+    let reasonInfo = '';
+    let reasonTitle = '';
+    if (global.QLBMode && global.QLBMode.template === 'label-aesthetic10') {
+      try {
+        const textareas = document.querySelectorAll('textarea');
+        const reasonTotal = textareas.length;
+        let reasonDone = 0;
+        textareas.forEach((t) => {
+          if ((t.value || '').trim().length > 0) reasonDone++;
+        });
+        if (reasonTotal > 0) {
+          reasonInfo = ` · 原因 ${reasonDone}/${reasonTotal}`;
+          reasonTitle = `\n评分原因填写：${reasonDone} / 共 ${reasonTotal}`;
+        }
+      } catch (e) {}
+    }
+    progressEl.textContent = `${done}/${total}${reasonInfo}`;
+    progressEl.title = `已答 ${done} / 共 ${total}${reasonTitle}`;
     progressEl.classList.toggle('qlb-progress--done', unanswered === 0 && total > 0);
   }
 
-  /** 给每列顶部注入"本列全选" */
+  /** 给每列顶部注入"本列全选"
+   *  v1.9.70：
+   *  - 根据当前模板用 getScores() 动态生成胶囊
+   *  - label-aesthetic10（10 个分值）分两排 5+5，避免一排太挤
+   *  - 检测到当前 col-bar 的胶囊数量与当前模板不匹配 → 删旧的重画 */
   function injectColumnButtons() {
     // 质检模式由 qa.js 自己注入列顶按钮，这里不要插打分胶囊
     if (global.QLBMode && global.QLBMode.current === 'qa') return;
+    const scores = getScores();
+    const tpl = (global.QLBMode && global.QLBMode.template) || 'label-old4';
+    const isWide = tpl === 'label-aesthetic10';
     const cols = getColumns();
     cols.forEach((col, idx) => {
-      if (col.querySelector(':scope > .qlb-col-bar')) return;
+      const existed = col.querySelector(':scope > .qlb-col-bar');
+      if (existed) {
+        // v1.9.70：检查胶囊数量是否对得上当前模板，对不上就重画
+        const existedScoreCount = existed.querySelectorAll('.qlb-pill[data-score]').length;
+        if (existedScoreCount === scores.length) return;
+        existed.remove();
+      }
       const bar = document.createElement('div');
-      bar.className = 'qlb-col-bar';
+      bar.className = 'qlb-col-bar' + (isWide ? ' qlb-col-bar--wide' : '');
+      // 胶囊渲染：1-10 分两排（前 5 + 后 5），4 档保持单排
+      const pillsHtml = scores
+        .map(
+          (s) =>
+            `<button class="qlb-pill qlb-pill--s${String(s).replace('.', '')}" data-score="${s}">${s}</button>`
+        )
+        .join('');
+      const pillsBlock = isWide
+        ? `<span class="qlb-pill-row">${scores.slice(0, 5).map((s) => `<button class="qlb-pill qlb-pill--s${String(s).replace('.', '')}" data-score="${s}">${s}</button>`).join('')}</span>` +
+          `<span class="qlb-pill-row">${scores.slice(5).map((s) => `<button class="qlb-pill qlb-pill--s${String(s).replace('.', '')}" data-score="${s}">${s}</button>`).join('')}</span>`
+        : pillsHtml;
       bar.innerHTML = `
         <span class="qlb-col-bar__label">视频${idx + 1} 本列全选：</span>
-        ${SCORES.map(
-          (s) =>
-            `<button class="qlb-pill qlb-pill--s${s.replace('.', '')}" data-score="${s}">${s}</button>`
-        ).join('')}
+        <span class="qlb-pill-stack">${pillsBlock}</span>
       `;
       bar.addEventListener('click', (e) => {
         const b = e.target.closest('button');
         if (!b) return;
         scoreColumn(col, b.dataset.score);
         updateProgress();
-        // v1.9.42：本列全选后跳到"下一道未答题"（不再机械地跳到下一列首题）
-        //   实现：把焦点设到本列最后一题（不滚动），然后 moveFocus(1, skipAnswered)
-        //   → 跨列、自动跳过下一列里已答的题，找到首个未答题
+        // v1.9.42：本列全选后跳到"下一道未答题"
         try {
           const curList = getQuestionsInColumn(col);
           const lastInCol = curList[curList.length - 1];
@@ -665,22 +719,34 @@
     });
   }
 
-  /** 给每个维度标题旁注入快捷按钮 */
+  /** 给每个维度标题旁注入快捷按钮
+   *  v1.9.70：根据模板动态生成；新模板分两排 */
   function injectDimensionButtons() {
     if (global.QLBMode && global.QLBMode.current === 'qa') return;
+    const scores = getScores();
+    const tpl = (global.QLBMode && global.QLBMode.template) || 'label-old4';
+    const isWide = tpl === 'label-aesthetic10';
     const cols = getColumns();
     for (const col of cols) {
       const dims = getDimensionsInColumn(col);
       for (const dim of dims) {
         if (!dim.titleEl) continue;
         const titleP = dim.titleEl.closest('p.cr-text--bold') || dim.titleEl;
-        if (titleP.querySelector(':scope > .qlb-dim-bar')) continue;
+        const existed = titleP.querySelector(':scope > .qlb-dim-bar');
+        if (existed) {
+          // v1.9.70：胶囊数量与当前模板对不上就重画
+          const existedScoreCount = existed.querySelectorAll('.qlb-pill[data-score]').length;
+          if (existedScoreCount === scores.length) continue;
+          existed.remove();
+        }
         const bar = document.createElement('span');
-        bar.className = 'qlb-dim-bar';
-        bar.innerHTML = SCORES.map(
-          (s) =>
-            `<button class="qlb-pill qlb-pill--s${s.replace('.', '')}" data-score="${s}">${s}</button>`
-        ).join('');
+        bar.className = 'qlb-dim-bar' + (isWide ? ' qlb-dim-bar--wide' : '');
+        const buildPills = (arr) =>
+          arr.map((s) => `<button class="qlb-pill qlb-pill--s${String(s).replace('.', '')}" data-score="${s}">${s}</button>`).join('');
+        bar.innerHTML = isWide
+          ? `<span class="qlb-pill-row">${buildPills(scores.slice(0, 5))}</span>` +
+            `<span class="qlb-pill-row">${buildPills(scores.slice(5))}</span>`
+          : buildPills(scores);
         bar.addEventListener('click', (e) => {
           const b = e.target.closest('button');
           if (!b) return;
@@ -688,14 +754,7 @@
           e.stopPropagation();
           scoreDimension(dim, b.dataset.score);
           updateProgress();
-          // v1.9.48：可配置 —— 维度（类别）胶囊打分后是否自动跳下一未答题
-          //   - 默认 false（v1.9.49 改）
-          //   - 在工具栏"进度"区有开关；用户开启后会自动跳，否则保持当前焦点
-          //
-          //   实现：把焦点设到刚打完那个维度的最后一题（不滚动），再 moveFocus(1, skipAnswered)
-          //   → 跨维度自动跳到首个未答题
           if (state.prefs.advanceAfterDimension === true) {
-            // v1.9.52：诊断日志
             if (window.__QLB_VERBOSE__) console.log('[QLB] dim-bar click → advanceAfterDimension=true → moveFocus');
             try {
               const lastInDim = dim.groups && dim.groups[dim.groups.length - 1];
@@ -706,7 +765,6 @@
               }
             } catch (er) {}
           } else {
-            // v1.9.52：开关关闭时也打个日志，确认分支走对了
             if (window.__QLB_VERBOSE__) console.log('[QLB] dim-bar click → advanceAfterDimension=' + state.prefs.advanceAfterDimension + ' → SKIP advance');
           }
         });

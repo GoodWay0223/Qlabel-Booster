@@ -76,6 +76,28 @@
         kind: 'required'
       }));
     }
+    // v1.9.70：美学专项模板下，所有 textarea 都视为必填（"整体评分原因"、"维度评分原因"等都是必答的文字描述题）
+    if (global.QLBMode && global.QLBMode.template === 'label-aesthetic10') {
+      try {
+        const seenTextareas = new Set(
+          fields.filter((f) => f.type === 'textarea').map((f) => f.el)
+        );
+        document.querySelectorAll('textarea').forEach((t) => {
+          if (seenTextareas.has(t)) {
+            // 已在 fields 中，确保它被标为 required
+            const existing = fields.find((f) => f.el === t);
+            if (existing) existing.kind = 'required';
+          } else {
+            fields.push({
+              el: t,
+              type: 'textarea',
+              isAnswered: (t.value || '').trim().length > 0,
+              kind: 'required'
+            });
+          }
+        });
+      } catch (e) {}
+    }
     // 只关心「必填 且 未答」
     return fields.filter((f) => f.kind === 'required' && !f.isAnswered);
   }

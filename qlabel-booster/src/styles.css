@@ -1315,3 +1315,39 @@ body {
   font-size: 12px;
 }
 .qlb-btn--sm { padding: 2px 8px; font-size: 11px; }
+
+/* v1.9.70：1-10 分制胶囊（分两排 5+5） */
+.qlb-pill-stack {
+  display: inline-flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0;
+}
+.qlb-col-bar--wide .qlb-pill-stack,
+.qlb-dim-bar--wide {
+  display: inline-flex !important;
+  flex-direction: column;
+  gap: 2px;
+}
+.qlb-pill-row {
+  display: inline-flex;
+  flex-direction: row;
+  gap: 2px;
+}
+.qlb-col-bar--wide .qlb-pill-row .qlb-pill,
+.qlb-dim-bar--wide .qlb-pill-row .qlb-pill {
+  min-width: 28px;
+  padding: 2px 6px;
+}
+
+/* v1.9.70：工具栏"一键全选"在 1-10 模板下自动 5 列 grid（10 个按钮分两排） */
+.qlb-row--score-grid {
+  display: grid !important;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+}
+.qlb-row--score-grid .qlb-btn--score {
+  padding: 4px 0 !important;
+  font-size: 12px;
+  min-width: 0;
+}

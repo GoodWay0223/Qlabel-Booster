@@ -561,6 +561,21 @@
       } catch (er) {}
       return;
     }
+    // v1.9.70：textarea 内 Cmd/Ctrl+Enter → 跳到下一道未答题
+    // 比 Tab 更像"完成本题"语义；不影响普通 Enter 换行
+    if ((e.metaKey || e.ctrlKey) && (e.key === 'Enter' || e.code === 'Enter')) {
+      const tag = ((e.target && e.target.tagName) || '').toLowerCase();
+      if (tag === 'textarea' || (e.target && e.target.isContentEditable)) {
+        e.preventDefault();
+        e.stopPropagation();
+        try {
+          // 让 textarea 失焦，再跳到下一未答题
+          e.target.blur();
+          moveFocus(1, { skipAnswered: true });
+        } catch (er) {}
+        return;
+      }
+    }
     if (shouldIgnore(e)) {
       if (window.__QLB_KEY_DEBUG__) console.log('[QLB-KEY] 忽略（目标是输入框）', e.target);
       return;
@@ -570,9 +585,20 @@
 
     const k = e.key;
     if (window.__QLB_KEY_DEBUG__) console.log('[QLB-KEY] 按下:', k);
-    // 打分（1/2/3 = 0/0.5/1；none 支持三种键：` / ~ / 4）
-    // v1.9.14：把空缺的 4 也作为 none 的快捷键，方便手指就近敲数字键
-    const scoreMap = { '1': '0', '2': '0.5', '3': '1', '`': 'none', '~': 'none', '4': 'none' };
+    // v1.9.70：根据当前模板用不同的快捷键映射
+    //  - label-aesthetic10：1-9 → 1-9 分；0 / ` / ~ → 10 分
+    //  - label-old4 / unknown：1/2/3 → 0/0.5/1 分；` / ~ / 4 → none
+    let scoreMap;
+    const tpl = (global.QLBMode && global.QLBMode.template) || 'label-old4';
+    if (tpl === 'label-aesthetic10') {
+      scoreMap = {
+        '1': '1', '2': '2', '3': '3', '4': '4', '5': '5',
+        '6': '6', '7': '7', '8': '8', '9': '9',
+        '0': '10', '`': '10', '~': '10'
+      };
+    } else {
+      scoreMap = { '1': '0', '2': '0.5', '3': '1', '`': 'none', '~': 'none', '4': 'none' };
+    }
     if (scoreMap[k] !== undefined) {
       // v1.9.34：先 resolve 一下当前活着的聚焦题，兼容 React 重渲染丢引用
       let active = resolveActiveFocus();

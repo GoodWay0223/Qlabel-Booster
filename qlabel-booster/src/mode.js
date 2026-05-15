@@ -1,81 +1,96 @@
 /**
  * mode.js
- * 识别当前页面是「标注」还是「质检」任务。
+ * 识别当前页面是「标注」还是「质检」任务，以及具体的模板版本。
  *
- * 判定优先级（从最稳到最弱）：
- *   A. iframe DOM 特征（最准）：
- *      - 含 label.tea-form-check[name="通过"] / [name="不通过"] → 质检
- *      - 含 label.tea-form-check[name="0"] 等数字分值 → 标注
- *   B. 顶层 frame 标题文字：含「质检」→ qa；含「标注」→ label
- *   C. URL 关键词兜底（保留扩展性）
+ * v1.9.70 重构：引入 template 概念
+ *   ┌─ mode（业务大类）          ─┬─ 'label' / 'qa' / 'unknown'
+ *   └─ template（具体模板版本）   ─┴─ 'label-old4'        （0/0.5/1/none 4 档评分）
+ *                                   'label-aesthetic10'   （美学专项 1-10 分）
+ *                                   'qa-old'              （旧通过/不通过 + 修正分）
+ *                                   'unknown'
+ *
+ * 判定优先级：
+ *   1. 含 [name="通过"]/[name="不通过"] → qa-old
+ *   2. 含 [name="2"] 到 [name="10"] 任一 → label-aesthetic10
+ *   3. 含 [name="0.5"] 或 [name="none"] → label-old4
+ *   4. 仅 [name="1"] 没有 2-10 → 也算 label-old4（兼容只剩 1 分场景）
+ *   5. 都没有 → unknown
  *
  * 暴露：
- *   QLBMode.detect()  → 'qa' | 'label' | 'unknown'
- *   QLBMode.is(name)  → boolean
- *   QLBMode.onChange(cb) → 模式变化通知（页面切任务时）
- *   QLBMode.current   → 当前缓存值
+ *   QLBMode.detect()       → 同时刷新 mode 和 template
+ *   QLBMode.current        → 'label' / 'qa' / 'unknown'
+ *   QLBMode.template       → 'label-old4' / 'label-aesthetic10' / 'qa-old' / 'unknown'
+ *   QLBMode.is(name)       → 检查 mode === name
+ *   QLBMode.isTemplate(t)  → 检查 template === t
+ *   QLBMode.onChange(cb)   → mode 变化通知（template 也变会一并触发）
  */
 (function (global) {
   'use strict';
 
   let _current = 'unknown';
+  let _template = 'unknown';
   const listeners = new Set();
 
-  /** 在当前 document 里检测特征
-   *
-   *  v1.9.59：放宽 selector：从 `label.tea-form-check[name="X"]` →
-   *  `label[name="X"]`（不再要求特定 class）
-   *  原因：QLabel 后端调整 DOM 后某些页面的 label class 已不是 tea-form-check，
-   *  但 [name="通过"] / [name="不通过"] / [name="0"] 等业务属性始终保留。
-   *  保留 .tea-form-check 路径作为优先匹配（可能更准），失败再退到属性匹配。
-   */
-  function detectInDoc(doc) {
-    // 1) 质检特征：是否通过/不通过 radio
+  /** 在当前 document 里检测模板，返回 template 字符串 */
+  function detectTemplateInDoc(doc) {
+    // 1) 质检
     if (
-      doc.querySelector('label.tea-form-check[name="通过"]') ||
-      doc.querySelector('label.tea-form-check[name="不通过"]') ||
       doc.querySelector('label[name="通过"]') ||
       doc.querySelector('label[name="不通过"]')
-    ) return 'qa';
+    ) return 'qa-old';
 
-    // 2) 标注特征：数字分值 radio
+    // 2) 美学专项 1-10：判断有没有 2 ~ 10 任一
+    for (let i = 2; i <= 10; i++) {
+      if (doc.querySelector(`label[name="${i}"]`)) return 'label-aesthetic10';
+    }
+
+    // 3) 旧 4 档标注：有 0 / 0.5 / none / 1 任一
     if (
-      doc.querySelector(
-        'label.tea-form-check[name="0"], label.tea-form-check[name="0.5"], label.tea-form-check[name="1"], label.tea-form-check[name="none"]'
-      ) ||
-      doc.querySelector(
-        'label[name="0"], label[name="0.5"], label[name="1"], label[name="none"]'
-      )
-    ) return 'label';
+      doc.querySelector('label[name="0"]') ||
+      doc.querySelector('label[name="0.5"]') ||
+      doc.querySelector('label[name="none"]') ||
+      doc.querySelector('label[name="1"]')
+    ) return 'label-old4';
 
-    return null;
+    return 'unknown';
   }
 
-  /** 试着从顶层 window（如果可访问）拿任务标题 */
+  /** template → mode 的映射 */
+  function templateToMode(tpl) {
+    if (tpl === 'qa-old') return 'qa';
+    if (tpl === 'label-old4' || tpl === 'label-aesthetic10') return 'label';
+    return 'unknown';
+  }
+
+  /** 试着从顶层 window（如果可访问）拿任务标题做兜底 */
   function detectFromTopTitle() {
     try {
       const w = window.top;
       if (!w) return null;
-      // 顶层文档可能跨域，try/catch 包住
       const txt = ((w.document && w.document.body && w.document.body.innerText) || '').slice(0, 4000);
       if (!txt) return null;
-      // 寻找类似「分组X-...-质检-MMDD」/「...-标注-MMDD」
       if (/[-—]\s*质检\s*[-—]/.test(txt) || /质检任务/.test(txt)) return 'qa';
-      if (/[-—]\s*标注\s*[-—]/.test(txt) || /标注任务/.test(txt)) return 'label';
+      if (/[-—]\s*标注\s*[-—]/.test(txt) || /标注任务/.test(txt) || /美学专项/.test(txt)) return 'label';
     } catch (e) { /* 跨域 */ }
     return null;
   }
 
   /** 综合判定，写入缓存并触发回调 */
   function detect() {
-    let mode = detectInDoc(document);
-    if (!mode) mode = detectFromTopTitle();
-    if (!mode) mode = 'unknown';
-    if (mode !== _current) {
-      const old = _current;
-      _current = mode;
+    const tpl = detectTemplateInDoc(document);
+    let mode = templateToMode(tpl);
+    if (mode === 'unknown') {
+      // DOM 还没渲染完，试用顶层标题兜底（仅区分 mode，template 暂留 unknown）
+      const fb = detectFromTopTitle();
+      if (fb) mode = fb;
+    }
+    const changed = (mode !== _current) || (tpl !== _template);
+    const old = _current;
+    _current = mode;
+    _template = tpl;
+    if (changed) {
       listeners.forEach((fn) => {
-        try { fn(mode, old); } catch (e) {}
+        try { fn(mode, old, tpl); } catch (e) {}
       });
     }
     return _current;
@@ -83,6 +98,10 @@
 
   function is(name) {
     return _current === name;
+  }
+
+  function isTemplate(t) {
+    return _template === t;
   }
 
   function onChange(cb) {
@@ -93,7 +112,9 @@
   global.QLBMode = {
     detect,
     is,
+    isTemplate,
     onChange,
-    get current() { return _current; }
+    get current() { return _current; },
+    get template() { return _template; }
   };
 })(window);

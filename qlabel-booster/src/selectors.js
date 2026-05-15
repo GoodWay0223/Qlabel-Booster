@@ -6,7 +6,23 @@
 (function (global) {
   'use strict';
 
-  const SCORE_VALUES = ['0', '0.5', '1', 'none'];
+  // v1.9.70：双模板支持
+  // - 旧 4 档评分（label-old4）：'0' / '0.5' / '1' / 'none'
+  // - 美学专项 1-10（label-aesthetic10）：'1' ~ '10'
+  // 注意：'1' 在两套里都存在，单纯按 SCORE_VALUES 命中无法区分模板，
+  //       区分模板由 mode.js 的 detectTemplateInDoc 负责（看有没有 [name="2"]~[name="10"]）。
+  // 这里 SCORE_VALUES 是**所有可能分值的并集**，用于扫描"该题是不是打分题"
+  const SCORE_VALUES_OLD4 = ['0', '0.5', '1', 'none'];
+  const SCORE_VALUES_AESTHETIC10 = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
+  const SCORE_VALUES = [...new Set([...SCORE_VALUES_OLD4, ...SCORE_VALUES_AESTHETIC10])];
+
+  /** 按当前模板返回这套模板下的合法分值数组 */
+  function getScoreValuesForCurrentTemplate() {
+    const tpl = (global.QLBMode && global.QLBMode.template) || 'unknown';
+    if (tpl === 'label-aesthetic10') return SCORE_VALUES_AESTHETIC10;
+    if (tpl === 'label-old4') return SCORE_VALUES_OLD4;
+    return SCORE_VALUES; // unknown / qa-old：返回全集兜底
+  }
 
   const SEL = {
     // 题目容器（打分题，唯一关键锚点）
@@ -35,37 +51,46 @@
 
   /**
    * 获取整页所有题目容器
-   * v1.9.17：严格按"标注题"特征过滤——必须含 [name="0"|"0.5"|"1"|"none"] 之一的选项 label
+   * v1.9.17：严格按"标注题"特征过滤——必须含某个分值 label
    * 防止把质检页的"通过/不通过" radio 组（也是 .cr-radio-group）误算进进度
-   * 也防止把视口外/隐藏的脏 DOM 计入
+   * v1.9.70：兼容 label-old4（0/0.5/1/none）和 label-aesthetic10（1-10）
+   *          只要含至少一个 SCORE_VALUES 中的 [name=X] label 就算
+   *          不再要求 label 必须是 .tea-form-check class（兼容新模板可能改 class）
    */
   function getAllQuestionGroups(root = document) {
     const all = Array.from(root.querySelectorAll(SEL.questionGroup));
     return all.filter((g) => {
-      // 必须含至少一个分值 label（标注题特征）
+      // 排除质检题（含通过/不通过）—— 不属于"打分题"
+      if (g.querySelector('label[name="通过"], label[name="不通过"]')) return false;
+      // 必须含至少一个分值 label
       for (const v of SCORE_VALUES) {
-        if (g.querySelector(`label.tea-form-check[name="${CSS.escape(v)}"]`)) return true;
+        if (g.querySelector(`label[name="${CSS.escape(v)}"]`)) return true;
       }
       return false;
     });
   }
 
-  /** 获取一题的选项 label */
+  /** 获取一题的选项 label
+   *  v1.9.70：先找带 [name] 的 label（新旧模板都有），再降级到 .tea-form-check */
   function getOptionLabels(group) {
     if (!group) return [];
+    const named = Array.from(group.querySelectorAll('label[name]'));
+    if (named.length > 0) return named;
     return Array.from(group.querySelectorAll(SEL.optionLabel));
   }
 
-  /** 获取一题指定分值的 label */
+  /** 获取一题指定分值的 label
+   *  v1.9.70：去掉 .tea-form-check class 限定，兼容新模板 */
   function getOptionByScore(group, score) {
     if (!group) return null;
-    // 优先 [name="x"]
-    let el = group.querySelector(`${SEL.optionLabel}[name="${CSS.escape(String(score))}"]`);
+    const s = String(score);
+    // 优先 [name="x"]（不要求 class）
+    let el = group.querySelector(`label[name="${CSS.escape(s)}"]`);
     if (el) return el;
     // 降级：遍历
     for (const l of getOptionLabels(group)) {
       const n = l.getAttribute('name');
-      if (n === String(score)) return l;
+      if (n === s) return l;
     }
     return null;
   }
@@ -229,13 +254,15 @@
 
   /**
    * 获取某列内所有题目（v1.9.17：同 getAllQuestionGroups，仅取真正的标注题）
+   * v1.9.70：兼容 label-old4 与 label-aesthetic10
    */
   function getQuestionsInColumn(col) {
     if (!col) return [];
     const all = Array.from(col.querySelectorAll(SEL.questionGroup));
     return all.filter((g) => {
+      if (g.querySelector('label[name="通过"], label[name="不通过"]')) return false;
       for (const v of SCORE_VALUES) {
-        if (g.querySelector(`label.tea-form-check[name="${CSS.escape(v)}"]`)) return true;
+        if (g.querySelector(`label[name="${CSS.escape(v)}"]`)) return true;
       }
       return false;
     });
@@ -291,6 +318,9 @@
   global.QLBSelectors = {
     SEL,
     SCORE_VALUES,
+    SCORE_VALUES_OLD4,
+    SCORE_VALUES_AESTHETIC10,
+    getScoreValuesForCurrentTemplate,
     getAllQuestionGroups,
     getOptionLabels,
     getOptionByScore,
