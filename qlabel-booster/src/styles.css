@@ -388,6 +388,32 @@ body {
 .qlb-btn--snone { background: #374151; border-color: #4b5563; }
 .qlb-btn--snone:hover { background: #4b5563; }
 
+/* v1.9.73：美学专项 1-10 分制按钮配色（红→绿渐变，1=最低红，10=最高绿）
+ *  作用域用 .qlb-row--score-grid 限定，避免和老模板的 --s1（=绿色）冲突。
+ *  注：1/10 不依赖 --score-grid 限定也能命中（因为 .qlb-btn--s1 老定义本来就是绿色，新模板下也是 1=红），
+ *  所以 --s1 必须放在限定域里，否则会和老模板的 1=绿冲突。
+ */
+.qlb-row--score-grid .qlb-btn--s1  { background: #7f1d1d; border-color: #991b1b; }
+.qlb-row--score-grid .qlb-btn--s1:hover  { background: #991b1b; }
+.qlb-row--score-grid .qlb-btn--s2  { background: #b91c1c; border-color: #dc2626; }
+.qlb-row--score-grid .qlb-btn--s2:hover  { background: #dc2626; }
+.qlb-row--score-grid .qlb-btn--s3  { background: #dc2626; border-color: #ef4444; }
+.qlb-row--score-grid .qlb-btn--s3:hover  { background: #ef4444; }
+.qlb-row--score-grid .qlb-btn--s4  { background: #ea580c; border-color: #f97316; }
+.qlb-row--score-grid .qlb-btn--s4:hover  { background: #f97316; }
+.qlb-row--score-grid .qlb-btn--s5  { background: #d97706; border-color: #f59e0b; }
+.qlb-row--score-grid .qlb-btn--s5:hover  { background: #f59e0b; }
+.qlb-row--score-grid .qlb-btn--s6  { background: #84cc16; border-color: #a3e635; color: #1a2e05; }
+.qlb-row--score-grid .qlb-btn--s6:hover  { background: #a3e635; }
+.qlb-row--score-grid .qlb-btn--s7  { background: #65a30d; border-color: #84cc16; }
+.qlb-row--score-grid .qlb-btn--s7:hover  { background: #84cc16; }
+.qlb-row--score-grid .qlb-btn--s8  { background: #16a34a; border-color: #22c55e; }
+.qlb-row--score-grid .qlb-btn--s8:hover  { background: #22c55e; }
+.qlb-row--score-grid .qlb-btn--s9  { background: #15803d; border-color: #16a34a; }
+.qlb-row--score-grid .qlb-btn--s9:hover  { background: #16a34a; }
+.qlb-row--score-grid .qlb-btn--s10 { background: #14532d; border-color: #15803d; }
+.qlb-row--score-grid .qlb-btn--s10:hover { background: #15803d; }
+
 /* ==========================================================================
  * v1.9.41：当前音频聚焦视频的"淡蓝色框"
  * v1.9.43：加呼吸效果（仅 box-shadow 透明度，节省 GPU；尊重系统降低动画偏好）
@@ -471,6 +497,31 @@ body {
 .qlb-pill--s05 { background: #fef3c7; color: #854d0e; border-color: #fde68a; }
 .qlb-pill--s1 { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
 .qlb-pill--snone { background: #f3f4f6; color: #374151; border-color: #e5e7eb; }
+
+/* v1.9.73：美学专项 1-10 分胶囊（红→绿浅色渐变）
+ *  作用域用 .qlb-col-bar--wide / .qlb-dim-bar--wide 限定，避免和老模板的 --s1（=绿色）冲突。
+ *  老模板的 .qlb-pill--s1 仍为绿（1 分=最高），新模板用更具体的选择器覆盖为红（1 分=最低）。
+ */
+.qlb-col-bar--wide .qlb-pill--s1,
+.qlb-dim-bar--wide .qlb-pill--s1  { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+.qlb-col-bar--wide .qlb-pill--s2,
+.qlb-dim-bar--wide .qlb-pill--s2  { background: #fecaca; color: #991b1b; border-color: #fca5a5; }
+.qlb-col-bar--wide .qlb-pill--s3,
+.qlb-dim-bar--wide .qlb-pill--s3  { background: #fed7aa; color: #9a3412; border-color: #fdba74; }
+.qlb-col-bar--wide .qlb-pill--s4,
+.qlb-dim-bar--wide .qlb-pill--s4  { background: #fde68a; color: #854d0e; border-color: #fcd34d; }
+.qlb-col-bar--wide .qlb-pill--s5,
+.qlb-dim-bar--wide .qlb-pill--s5  { background: #fef3c7; color: #713f12; border-color: #fde68a; }
+.qlb-col-bar--wide .qlb-pill--s6,
+.qlb-dim-bar--wide .qlb-pill--s6  { background: #ecfccb; color: #3f6212; border-color: #d9f99d; }
+.qlb-col-bar--wide .qlb-pill--s7,
+.qlb-dim-bar--wide .qlb-pill--s7  { background: #d9f99d; color: #365314; border-color: #bef264; }
+.qlb-col-bar--wide .qlb-pill--s8,
+.qlb-dim-bar--wide .qlb-pill--s8  { background: #bbf7d0; color: #166534; border-color: #86efac; }
+.qlb-col-bar--wide .qlb-pill--s9,
+.qlb-dim-bar--wide .qlb-pill--s9  { background: #86efac; color: #14532d; border-color: #4ade80; }
+.qlb-col-bar--wide .qlb-pill--s10,
+.qlb-dim-bar--wide .qlb-pill--s10 { background: #4ade80; color: #052e16; border-color: #22c55e; font-weight: 700; }
 
 /* Toast */
 #qlb-toast {
