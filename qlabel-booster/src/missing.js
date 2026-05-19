@@ -107,6 +107,21 @@
         });
       } catch (e) {}
     }
+    // v1.9.84：按 DOM 顺序排序——之前 textarea 被无脑 push 到末尾，
+    //   导致"视频1 整体评分原因（DOM 在最前）"被排到所有评分题之后，
+    //   "定位未答题"永远跳到某个 radio 组而不是真正排在最前的 textarea。
+    try {
+      fields.sort((a, b) => {
+        const ea = a && a.el, eb = b && b.el;
+        if (!ea || !eb) return 0;
+        if (ea === eb) return 0;
+        const pos = ea.compareDocumentPosition(eb);
+        // a 在 b 前 → 返回 -1（保持 a 在前）
+        if (pos & Node.DOCUMENT_POSITION_FOLLOWING) return -1;
+        if (pos & Node.DOCUMENT_POSITION_PRECEDING) return 1;
+        return 0;
+      });
+    } catch (e) {}
     // 只关心「必填 且 未答」
     return fields.filter((f) => f.kind === 'required' && !f.isAnswered);
   }
