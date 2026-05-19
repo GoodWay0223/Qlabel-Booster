@@ -7,6 +7,17 @@
 
 ---
 
+## [1.9.87] - 2026-05-19
+
+### 修复：textarea「评分原因」输入后红框不消失
+
+- 之前 `installAnswerClearWatcher` 只监听打分 label 的 `click` 事件，对 textarea 的输入完全没监听
+- 红框实际加在 `.tea-form-ctrl`（控件 wrapper）上，不是 textarea 自身，所以即使监听 textarea 也要清父级
+- 修复：新增 `input` 事件监听器，textarea/input 输入非空内容后自动清掉自己 + `.tea-form-ctrl` / `.tea-form-item` / `.cr-container-col--10` 等父链上的红框 class
+- 用户清空 textarea 时保留红框（恢复未答状态合理）
+
+---
+
 ## [1.9.86] - 2026-05-19
 
 ### 修复：「定位未答题」横向不滚动

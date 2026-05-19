@@ -759,6 +759,50 @@
       },
       true // 捕获阶段，确保不被页面 stopPropagation 吃掉
     );
+
+    /**
+     * v1.9.87：textarea / input 输入后自动清红框
+     *   之前 watcher 只监听打分 label 的 click，textarea「评分原因」答完后红框永久残留。
+     *   红框实际加在 target = .tea-form-ctrl（控件 wrapper），不是 textarea 自身，
+     *   所以要清 textarea 自己 + 一路向上的 wrapper / form-item / col 容器。
+     */
+    function clearRedForTextarea(el) {
+      if (!el) return;
+      try {
+        // 元素自己
+        RED.forEach((c) => el.classList.remove(c));
+        // 父链上可能挂红框的容器
+        const ancestors = [
+          el.closest('.tea-form-ctrl'),
+          el.closest('.tea-form-item'),
+          el.closest('.cr-container-col--10'),
+          el.closest('.cr-container-col--8'),
+          el.closest('.cr-container-row')
+        ].filter(Boolean);
+        ancestors.forEach((node) => RED.forEach((c) => node.classList.remove(c)));
+      } catch (e) {}
+    }
+
+    document.addEventListener(
+      'input',
+      (e) => {
+        const t = e.target;
+        if (!t || t.nodeType !== 1) return;
+        const tag = (t.tagName || '').toLowerCase();
+        if (tag !== 'textarea' && tag !== 'input') return;
+        // 仅当当前确实有红框时才清（避免无谓 DOM 操作）
+        const wrapper = t.closest('.tea-form-ctrl') || t;
+        const hasRed =
+          t.classList.contains('qlb-missing-highlight') ||
+          t.classList.contains('qlb-missing-target') ||
+          (wrapper && (wrapper.classList.contains('qlb-missing-highlight') || wrapper.classList.contains('qlb-missing-target')));
+        if (!hasRed) return;
+        // 有内容 → 清；空字符串 → 保留红框（用户清空后又恢复未答状态）
+        const v = (t.value || '').trim();
+        if (v.length > 0) clearRedForTextarea(t);
+      },
+      true
+    );
   }
 
   function init() {
