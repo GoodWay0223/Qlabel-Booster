@@ -273,17 +273,23 @@
    *    场景：用户已手动横滑到合适位置（视频列和题目列对齐），此时点 通过/不通过 触发自动聚焦，
    *         旧逻辑会再"咔哒一下"把列卡到正中央 → 用户原本满意的位置被打乱。
    *    新策略：焦点题对应的视频列**已完全可见**（在视频轨道视口内）→ 视为合理对齐 → 不动横滚。
-   *           只有视频列被部分截断或完全不可见时才主动对齐。 */
-  function syncByFocusedGroup() {
+   *           只有视频列被部分截断或完全不可见时才主动对齐。
+   *
+   *  v1.9.86：新增 force 选项 —— "定位未答题"场景下需要强制把对应列拉回视口居中。
+   *    之前用户手动横滑走、再点定位未答题，会因为 lastAlignedIdx === i 短路而不滚，导致只标红框不跳列。
+   */
+  function syncByFocusedGroup(opts = {}) {
     if (state.prefs.syncScroll === false) return;
+    const force = !!opts.force;
     const g = state.focusedGroup;
     if (!g) return;
     for (let i = 0; i < ratingCols.length; i++) {
       if (ratingCols[i].contains(g)) {
-        if (i === lastAlignedIdx) return;
+        // force 模式跳过"已对齐过"和"已完全可见"两个短路，直接对齐
+        if (!force && i === lastAlignedIdx) return;
         // v1.9.67：检查"对应视频列"是否已经在视频轨道视口内完全可见
         // 是 → 用户已手动对齐，保持现状不打扰
-        if (ratingVideos[i] && videoTrack) {
+        if (!force && ratingVideos[i] && videoTrack) {
           try {
             const videoCol = ratingVideos[i].closest('.cr-container-col--8') || ratingVideos[i];
             const trackRect = videoTrack.getBoundingClientRect();

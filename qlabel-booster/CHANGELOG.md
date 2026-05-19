@@ -7,6 +7,21 @@
 
 ---
 
+## [1.9.86] - 2026-05-19
+
+### 修复：「定位未答题」横向不滚动
+
+- 用户手动横滑走、再点「定位未答题」时，**只标红框但视频/题目列不会跟着横向滚回去**
+- 两处根因：
+  1. `focusField` 走 textarea 分支时**完全没调用横向同步**（`syncByFocusedGroup`）
+  2. radio-group 分支虽然调了，但 `syncByFocusedGroup` 有 `lastAlignedIdx` 短路：用户手动横滑出去后，对齐索引未变，再次定位同一列时直接 return
+- 修复：
+  - `syncByFocusedGroup` 新增 `force:true` 选项，绕过两处短路（"已对齐 idx" + "已完全可见"），强制对齐
+  - `focusField` 三条分支末尾统一触发 `forceHorizontalSync`，textarea 走"找列里第一个 radio-group"驱动同步
+  - 连续打分场景仍走默认（force=false），保留 v1.9.67 抑制无谓回弹的能力
+
+---
+
 ## [1.9.85] - 2026-05-19
 
 ### 修复：定位未答题脉冲改回「水波纹扩散」效果

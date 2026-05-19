@@ -182,6 +182,11 @@
    *   - 打分题 → QLBNavigator.setFocus 传 markAsMissingTarget:true → 红色强脉冲
    *   - 质检题 → QLBQA._setFocus 传 markAsMissingTarget:true → 红色强脉冲
    *   - 非打分字段 → 给元素加 qlb-missing-target，短时 3 秒后自动消失
+   *
+   * v1.9.86：定位未答题时强制横向同步（force:true），把对应视频列也拉回视口居中。
+   *   之前 textarea 分支完全不调用 syncByFocusedGroup；radio-group 分支虽然调了，
+   *   但用户手动横滑走后再点"定位未答题"，会因为 lastAlignedIdx 短路而不滚动。
+   *   现在统一在三条分支末尾都强制 sync 一次。
    */
   function focusField(el) {
     if (!el) return;
@@ -189,11 +194,13 @@
     // 质检模式
     if (group && global.QLBMode && global.QLBMode.current === 'qa' && global.QLBQA && global.QLBQA._setFocus) {
       global.QLBQA._setFocus(group, { markAsMissingTarget: true });
+      forceHorizontalSync(group);
       return;
     }
     // 标注模式
     if (group && global.QLBNavigator) {
       global.QLBNavigator.setFocus(group, { safeView: true, markAsMissingTarget: true });
+      forceHorizontalSync(group);
       return;
     }
     // 非打分字段（textarea / input / 下拉）
@@ -214,6 +221,40 @@
     focusField._timer = setTimeout(() => {
       try { el.classList.remove('qlb-missing-target'); } catch (e) {}
     }, 3000);
+    // textarea / input：找它所在的题目列，临时设 focusedGroup 触发横向强制同步
+    forceHorizontalSyncByElement(el);
+  }
+
+  /**
+   * v1.9.86：触发横向轨道强制同步（视频/题目两条轨道都拉到 group 所在列居中）。
+   * 用 force:true 绕过 syncByFocusedGroup 的"已对齐"短路 —— 用户手动横滑走也能拉回来。
+   */
+  function forceHorizontalSync(group) {
+    try {
+      if (group && global.QLBScrollSync && global.QLBScrollSync.syncByFocusedGroup) {
+        // syncByFocusedGroup 内部读 state.focusedGroup，setFocus 已经设过；这里直接传 force
+        global.QLBScrollSync.syncByFocusedGroup({ force: true });
+      }
+    } catch (e) {}
+  }
+
+  /**
+   * v1.9.86：textarea/input 等非 group 元素：找到它所在的 .cr-container-col--10 列，
+   *   把列里第一个 .cr-radio-group 当作 focusedGroup 触发同步（仅用于驱动横向对齐）。
+   */
+  function forceHorizontalSyncByElement(el) {
+    try {
+      const col = el.closest && el.closest('.cr-container-col--10');
+      if (!col || !global.QLBScrollSync || !global.QLBScrollSync.syncByFocusedGroup) return;
+      const firstG = col.querySelector('.cr-radio-group');
+      if (!firstG) return;
+      const saved = state.focusedGroup;
+      state.focusedGroup = firstG;
+      try { global.QLBScrollSync.syncByFocusedGroup({ force: true }); } catch (e) {}
+      // 不还原 focusedGroup —— 让后续操作（按方向键等）从这个列开始；
+      // 如果需要还原可以打开下一行：
+      // state.focusedGroup = saved;
+    } catch (e) {}
   }
 
   /** N 键：定位到下一未答题（循环） */
