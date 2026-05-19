@@ -229,13 +229,22 @@
         global.QLBMissing.toast(n > 0 ? `已撤销 ${n} 处` : '没有可撤销操作');
         updateProgress();
       } else if (act === 'goto-first-unanswered') {
-        let g = null;
-        if (isQa && global.QLBQA && global.QLBQA.focusFirstUnanswered) {
-          g = global.QLBQA.focusFirstUnanswered();
+        // v1.9.83：统一走 QLBMissing.locateFirstMissing，确保和"提交拦截"视觉一致
+        //   - 所有未答题加红框（qlb-missing-highlight）
+        //   - 目标加强脉冲（qlb-missing-target）+ 安全视口对齐
+        // 之前直接调 QLBNavigator.focusFirstUnanswered 会在 textarea 目标上完全没红色反馈
+        if (global.QLBMissing && global.QLBMissing.locateFirstMissing) {
+          global.QLBMissing.locateFirstMissing();
         } else {
-          g = global.QLBNavigator.focusFirstUnanswered();
+          // 兜底（理论上不会走到，留作版本兼容）
+          let g = null;
+          if (isQa && global.QLBQA && global.QLBQA.focusFirstUnanswered) {
+            g = global.QLBQA.focusFirstUnanswered();
+          } else {
+            g = global.QLBNavigator.focusFirstUnanswered();
+          }
+          if (!g) global.QLBMissing.toast('🎉 所有题目已答完');
         }
-        if (!g) global.QLBMissing.toast('🎉 所有题目已答完');
       } else if (act === 'toggle-player') {
         global.QLBPlayer.toggle();
       } else if (act === 'reset-player') {

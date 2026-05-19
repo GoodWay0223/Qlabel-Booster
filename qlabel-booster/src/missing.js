@@ -712,6 +712,24 @@
     installAnswerClearWatcher();
   }
 
+  /** v1.9.83：定位到首个未答题 —— 复用与提交拦截完全相同的视觉路径
+   *   - highlightAll 给所有未答题加红框（qlb-missing-highlight）
+   *   - focusField 给目标加强脉冲（qlb-missing-target）+ 滚动到安全区
+   *  对比 QLBNavigator.focusFirstUnanswered：那个只 setFocus 一个目标，textarea 时还没红框
+   *  本函数保证：无论目标是评分组还是 textarea，都有明显的红色视觉反馈
+   */
+  function locateFirstMissing() {
+    const list = scanMissing();
+    if (list.length === 0) {
+      toast('🎉 所有题目已答完');
+      return null;
+    }
+    highlightAll(list);
+    focusField(list[0]);
+    toast(`📍 已定位到第 1 / ${list.length} 道未答题`);
+    return list[0];
+  }
+
   global.QLBMissing = {
     init,
     scanMissing,
@@ -722,6 +740,7 @@
     highlightAll,
     clearHighlight,
     whyUnanswered,
+    locateFirstMissing,
     toast
   };
 })(window);
